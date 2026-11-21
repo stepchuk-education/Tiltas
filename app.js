@@ -17,6 +17,7 @@ const INTERVALS = [0,1,2,4,7,14,30];
 
 /* SVG-іконки (лінійні) */
 const ICON = {
+  play:'<path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="none"/>',
   home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
   lang:'<path d="M4 5h11M9.5 3v2M6 5c1 4 4 7 8 8M13 5c-1 4-4 7-8 9"/><path d="M14 21l4-9 4 9M15.5 18h5"/>',
   konst:'<path d="M3 21h18M5 18h14M4 9h16L12 4z"/><path d="M7 10v7M12 10v7M17 10v7"/>',
@@ -285,6 +286,7 @@ let tab = 'today', langSeg = 'gram', dictQuery = '';
 function readHash() { const h = location.hash.replace('#',''); if (TABS.some(t => t[0] === h)) tab = h; }
 
 function render() {
+  $('#main').classList.toggle('onbm', !S.onboarded);
   if (!S.onboarded) { $('#main').innerHTML = viewOnboard(); $('#nav').innerHTML = ''; $('#top').innerHTML = ''; $('#tutor').hidden = true; return; }
   $('#tutor').hidden = false;
   $('#top').innerHTML = topBar();
@@ -304,23 +306,39 @@ function topBar() {
     <div class="track"><i style="width:${prog}%"></i></div></div>`;
 }
 
+let obStep = 0;
 function viewOnboard() {
-  return `<section class="onb">
-    <div class="onb-pet">${petSVG('happy', 132)}</div>
-    <p class="eyebrow">Tiltas — «міст» литовською</p>
-    <h1>Labas, Olegai!</h1>
-    <p class="lead">За 6 тижнів ми разом збудуємо міст до іспитів з <b>литовської мови (A2)</b> і <b>основ Конституції</b>. Кожен день занять — нова дошка. Щодня 35–45 хвилин.</p>
-    <label class="fld"><span>Як звати твого пухнастого друга?</span><input id="ob-pet" maxlength="20" value="${esc(S.pet || 'Pūkas')}" autocomplete="off"></label>
-    <ul class="onb-list">
-      <li>${ic('target')}<span>Спершу коротка діагностика покаже слабкі місця.</span></li>
-      <li>${ic('repeat')}<span>Правила, слова й числа Конституції повертаються на повторення саме тоді, коли починають забуватися.</span></li>
-      <li>${ic('chat')}<span>Письмо й говоріння перевіряє ШІ-викладач і пояснює помилки українською.</span></li>
-    </ul>
-    <label class="fld"><span>Дата іспиту</span><input type="date" id="ob-exam" value="${S.exam}"></label>
-    <label class="fld"><span>Коли нагадувати займатися</span><input type="time" id="ob-time" value="${S.remind}"></label>
-    <button class="btn primary big" data-act="onb-go">Почати</button>
-    <p class="fine">Матеріали складені за програмами NŠA: «Konstitucijos pagrindų egzamino programa» і програмою іспиту з державної мови (I категорія = A2).</p>
-  </section>`;
+  const dots = `<div class="ob-dots">${[0,1,2].map(i => `<i class="${i === obStep ? 'on' : ''}"></i>`).join('')}</div>`;
+  if (obStep === 0) return `<section class="ob ob0">
+    <div class="ob-stage">${petSVG('happy', 300, 'ob-big')}</div>
+    <div class="ob-card">
+      <h1>Labas!</h1>
+      <p class="lead">Будуймо міст до іспиту разом.</p>
+      <button class="btn primary big" data-act="onb-next">Почати</button>
+      <details class="more"><summary>Що вміє Tiltas?</summary>
+        <ul class="onb-list">
+          <li>${ic('target')}<span>Діагностика покаже слабкі місця.</span></li>
+          <li>${ic('repeat')}<span>Повторення саме тоді, коли починаєш забувати.</span></li>
+          <li>${ic('chat')}<span>ШІ перевіряє письмо й говоріння.</span></li>
+        </ul>
+        <p class="fine">Литовська мова A2 і основи Конституції — за програмами NŠA.</p>
+      </details>
+    </div></section>`;
+  if (obStep === 1) return `<section class="ob ob1">
+    <div class="ob-stage sm">${petSVG('joy', 250)}</div>
+    <div class="ob-card">${dots}
+      <h1>Як мене звати?</h1>
+      <input class="ob-in" id="ob-pet" maxlength="20" value="${esc(S.pet || 'Pūkas')}" autocomplete="off" aria-label="Ім'я друга">
+      <button class="btn primary big" data-act="onb-next">Далі</button>
+    </div></section>`;
+  return `<section class="ob ob2">
+    <div class="ob-stage sm">${petSVG('calm', 250)}</div>
+    <div class="ob-card">${dots}
+      <h1>Коли іспит?</h1>
+      <input class="ob-in" type="date" id="ob-exam" value="${S.exam}" aria-label="Дата іспиту">
+      <label class="ob-lbl"><span>Нагадувати о</span><input class="ob-in sm" type="time" id="ob-time" value="${S.remind}"></label>
+      <button class="btn primary big" data-act="onb-go">Готово</button>
+    </div></section>`;
 }
 
 function hello() {
@@ -338,37 +356,43 @@ function viewToday() {
   const weak = weakRules();
   const fact = FACTS[S.factI % FACTS.length];
   const st = streak();
-  const reminderDue = new Date().toTimeString().slice(0,5) >= S.remind && doneN === 0;
   const mood = petMood(), [plt, pua] = petLine(mood), bs = bridgeState();
-  const moodUa = { happy:'у гарному настрої', calm:'спокійний', joy:'радіє', proud:'пишається тобою', done:'щасливий: ми на тому березі!', sad:'сумує без тебе', sad2:'дуже сумує без тебе', sad3:'плаче: тебе нема вже тиждень', angry:'трохи злиться' }[mood] || '';
+  const next = tasks.find(t => !rec.done[t.key]);
+  const left = tasks.filter(t => !rec.done[t.key]).reduce((a,t) => a + t.min, 0);
+  const planks = Array.from({ length: bs.total }, (_, i) => `<i class="${i < bs.built ? 'on' : ''}"></i>`).join('');
   return `
-  <section class="scene ${mood}">
-    <div class="bubble"><b class="lt">${esc(plt)}</b><small>${esc(pua)}</small></div>
-    ${bridgeSVG(bs.built, bs.total, mood, { partial: doneN > 0 })}
-    <div class="scene-foot"><span><b>${bs.built}</b> з ${bs.total} дошок</span><span>${esc(petName())} ${moodUa}</span></div>
+  <section class="home-hero ${mood}">
+    <button class="say" data-act="bubble" aria-label="Показати переклад"><b class="lt">${esc(plt)}</b><small>${esc(pua)}</small></button>
+    <button class="hero-pet" data-act="pet-tap" aria-label="${esc(petName())}">${petSVG(mood, 230, 'big')}</button>
+    <div class="planks" aria-label="Міст: ${bs.built} з ${bs.total} дошок">${planks}</div>
+    <p class="hero-cap"><b>${bs.built}</b> з ${bs.total} дошок</p>
   </section>
-  <section class="hero">
-    <div><p class="eyebrow">${hello()}, Olegai! <span class="ua">(${hello() === 'Labas rytas' ? 'Доброго ранку' : hello() === 'Laba diena' ? 'Добрий день' : 'Добрий вечір'})</span></p>
-    <h1>План на сьогодні</h1>
-    <p class="muted">${tasks.length} ${plural(tasks.length,'крок','кроки','кроків')} · приблизно ${total} хв · виконано ${doneN} з ${tasks.length}</p></div>
-    <div class="ring" style="--p:${tasks.length ? Math.round(100*doneN/tasks.length) : 0}"><span>${doneN}/${tasks.length}</span></div>
-  </section>
-  ${reminderDue ? `<div class="note">${ic('bell')}<span>Уже ${S.remind} — найкращий час почати. Навіть 10 хвилин повторення збережуть серію.</span></div>` : ''}
-  <ol class="tasks">${tasks.map((t, i) => {
-    const d = rec.done[t.key];
-    return `<li class="task ${d ? 'done' : ''}"><button data-act="${t.act}" data-task="${t.key}">
-      <span class="tnum">${d ? ic('check') : i+1}</span>
-      <span class="tbody"><b>${esc(t.title)}</b><small>${esc(t.sub)}</small></span>
-      <span class="tmin">${t.min} хв</span></button></li>`; }).join('')}</ol>
-  <div class="grid2">
-    <div class="card stat"><div class="stat-ic">${ic('flame')}</div><div><b>${st}</b><small>${plural(st,'день','дні','днів')} поспіль</small></div></div>
-    <div class="card stat"><div class="stat-ic">${ic('dict')}</div><div><b>${S.words.length}</b><small>${plural(S.words.length,'слово','слова','слів')} у словнику</small></div></div>
-  </div>
-  ${weak.length ? `<section class="card"><h2>${ic('target')} Слабкі місця</h2><p class="muted">Ці правила дають найбільше помилок. Відкрий теорію і зроби практику ще раз.</p>
-    <div class="chips">${weak.map(r => `<button class="chip weak" data-act="rule:${r.id}">${esc(r.ua)} · ${ruleM(r.id)}%</button>`).join('')}</div></section>` : ''}
-  <section class="card fact"><h2>${ic('spark')} Цікаво знати</h2><p>${fact}</p><button class="link" data-act="next-fact">Ще один факт</button></section>
-  <section class="card"><h2>${ic('bell')} Нагадування</h2><p class="muted">Додай щоденне нагадування о ${S.remind} у календар телефона — тоді він сам нагадає про заняття до самого іспиту.</p>
-    <button class="btn" data-act="ics">Додати в календар</button></section>`;
+  ${next ? `<button class="btn primary big go" data-act="${next.act}" data-task="${next.key}">${ic('play')}<span>${doneN ? 'Продовжити' : 'Почати заняття'}</span><small>${left} хв</small></button>`
+    : `<div class="all-done">${ic('check')}<span>Сьогодні все зроблено!</span></div>`}
+  <details class="fold plan">
+    <summary><span>План на сьогодні</span><em>${doneN}/${tasks.length}</em></summary>
+    <ol class="tasks">${tasks.map((t, i) => {
+      const d = rec.done[t.key];
+      return `<li class="task ${d ? 'done' : ''}"><button data-act="${t.act}" data-task="${t.key}">
+        <span class="tnum">${d ? ic('check') : i+1}</span>
+        <span class="tbody"><b>${esc(t.title)}</b></span>
+        <span class="tmin">${t.min} хв</span></button></li>`; }).join('')}</ol>
+  </details>
+  <div class="tiles">
+    <div class="tile">${ic('flame')}<b>${st}</b><small>${plural(st,'день','дні','днів')} поспіль</small></div>
+    <div class="tile">${ic('dict')}<b>${S.words.length}</b><small>${plural(S.words.length,'слово','слова','слів')}</small></div>
+    <details class="tile fold">
+      <summary>${ic('spark')}<b>Факт</b><small>натисни</small></summary>
+      <div class="fold-in"><p>${fact}</p><button class="link" data-act="next-fact">Ще один</button></div>
+    </details>
+    ${weak.length ? `<details class="tile fold">
+      <summary>${ic('target')}<b>${weak.length}</b><small>слабкі місця</small></summary>
+      <div class="fold-in"><div class="chips">${weak.map(r => `<button class="chip weak" data-act="rule:${r.id}">${esc(r.ua)} · ${ruleM(r.id)}%</button>`).join('')}</div></div>
+    </details>` : `<details class="tile fold">
+      <summary>${ic('bell')}<b>${S.remind}</b><small>нагадування</small></summary>
+      <div class="fold-in"><p>Додай щоденне нагадування в календар телефона.</p><button class="btn" data-act="ics">Додати в календар</button></div>
+    </details>`}
+  </div>`;
 }
 
 /* ----- Мова ----- */
@@ -1060,7 +1084,10 @@ document.addEventListener('click', async e => {
   const fromTask = !!t.dataset.task;
   switch (a) {
     case 'close': closeSheet(); break;
-    case 'onb-go': S.pet = ($('#ob-pet').value || '').trim() || 'Pūkas'; S.exam = $('#ob-exam').value || S.exam; S.remind = $('#ob-time').value || S.remind; S.start = todayStr(); S.onboarded = true; save(); render(); $('#app').scrollTop = 0; break;
+    case 'onb-next': if ($('#ob-pet')) S.pet = ($('#ob-pet').value || '').trim() || 'Pūkas'; obStep++; render(); $('#app').scrollTop = 0; break;
+    case 'bubble': t.classList.toggle('open'); break;
+    case 'pet-tap': { petTaps++; const [l1, l2] = petLine(petMood()); const b = $('.home-hero .say'); if (b) b.innerHTML = `<b class="lt">${esc(l1)}</b><small>${esc(l2)}</small>`; const pe = t.querySelector('.pet'); if (pe) { pe.classList.remove('hop1'); void pe.offsetWidth; pe.classList.add('hop1'); } break; }
+    case 'onb-go': S.exam = $('#ob-exam').value || S.exam; S.remind = $('#ob-time').value || S.remind; S.start = todayStr(); S.onboarded = true; save(); render(); $('#app').scrollTop = 0; break;
     case 'diag': startDiag(); break;
     case 'review': startReview(false); break;
     case 'review-words': startReview(true); break;

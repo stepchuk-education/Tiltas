@@ -13,6 +13,8 @@ const PET_IMG = {
   sad3:  'pet/despair.webp',    // тиждень і більше без занять
   angry: 'pet/annoyed.webp',    // кілька помилок поспіль
 };
+/* Чіткіші великі версії для показу на весь екран. */
+const PET_IMG_BIG = { happy: 'pet/main-big.webp' };
 /* Шлях до відео-інтро (напр. 'intro.mp4'). Поки порожньо — показується анімований мультик із міста. */
 const INTRO_VIDEO = '';
 
@@ -37,9 +39,10 @@ const moodBase = m => m === 'joy' || m === 'calm' ? 'happy' : m === 'done' ? 'pr
 function petSVG(mood = 'happy', size = 96, cls = '') {
   if (PET_IMG[mood]) {
     const c = `pet petimg ${moodBase(mood)} ${mood} ${cls}`;
+    const src = size > 140 && PET_IMG_BIG[mood] ? PET_IMG_BIG[mood] : PET_IMG[mood];
     return cls.includes('onbridge')
-      ? `<image class="${c}" href="${PET_IMG[mood]}" width="${size}" height="${size}"/>`
-      : `<img class="${c}" src="${PET_IMG[mood]}" width="${size}" height="${size}" alt="${esc(petName())}" draggable="false">`;
+      ? `<image class="${c}" href="${src}" width="${size}" height="${size}"/>`
+      : `<img class="${c}" src="${src}" width="${size}" height="${size}" alt="${esc(petName())}" draggable="false">`;
   }
   mood = moodBase(mood);
   const id = 'p' + (++petUid), [c1, c2] = PET_COLORS[mood] || PET_COLORS.happy;
@@ -86,10 +89,11 @@ function petMood() {
   return 'happy';
 }
 function petFlash(mood) { S.flash = { mood, t: Date.now() }; }
+let petTaps = 0;
 function petLine(mood) {
   const { total, built } = bridgeState();
   const list = built >= total ? PET_LINES.done : (PET_LINES[mood] || PET_LINES[moodBase(mood)] || PET_LINES.happy);
-  return list[(new Date().getDate() + built) % list.length];
+  return list[(new Date().getDate() + built + petTaps) % list.length];
 }
 
 /* Міст */
