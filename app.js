@@ -288,13 +288,14 @@ function readHash() { const h = location.hash.replace('#',''); if (TABS.some(t =
 function render() {
   $('#main').classList.toggle('onbm', !S.onboarded);
   $('#device').classList.toggle('lav', !S.onboarded || tab === 'today');
-  if (!S.onboarded) { $('#main').innerHTML = viewOnboard(); $('#nav').innerHTML = ''; $('#top').innerHTML = ''; $('#tutor').hidden = true; return; }
+  if (!S.onboarded) { $('#main').innerHTML = viewOnboard(); $('#nav').innerHTML = ''; $('#top').innerHTML = ''; $('#tutor').hidden = true; mountRig(); return; }
   $('#tutor').hidden = false;
   $('#top').innerHTML = topBar();
   const openN = typeof openMistakes === 'function' ? openMistakes().length : 0;
   $('#nav').innerHTML = TABS.map(([id, t, i]) => `<a href="#${id}" class="${tab === id ? 'on' : ''}" data-tab="${id}">${ic(i)}<span>${t}</span>${id === 'klaidos' && openN ? `<em class="badge">${openN}</em>` : ''}</a>`).join('');
   const v = { today:viewToday, mova:viewLang, konst:viewKonst, klaidos:viewMist, zodynas:viewDict, progresas:viewProg }[tab];
   $('#main').innerHTML = v();
+  mountRig();
   if (tab === 'zodynas') { const i = $('#dq'); if (i && dictQuery) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
 }
 
@@ -307,12 +308,25 @@ function topBar() {
     <div class="track"><i style="width:${prog}%"></i></div></div>`;
 }
 
+/* Живий Pūkas (pet-rig.js): вставляємо полотно в контейнер, фраза — у хмаринку */
+function mountRig() {
+  const host = document.querySelector('.rig-host');
+  if (!host || typeof Rig === 'undefined') return;
+  Rig.onSay = (lt, ua) => {
+    const b = document.querySelector('.say'); if (!b) return;
+    b.innerHTML = `<b class="lt">${esc(lt)}</b><small>${esc(ua)}</small>`; b.classList.add('open', 'pop');
+    clearTimeout(Rig.timers.say); Rig.timers.say = setTimeout(() => b.classList.remove('pop'), 400);
+  };
+  Rig.onPet = () => { if (!S.onboarded || S.petted) return; S.petted = true; save(); const h = document.querySelector('.pet-hint'); if (h) h.remove(); };
+  try { Rig.mount(host, host.dataset.mood || 'happy'); } catch (e) { console.warn(e); }
+}
+
 let obStep = 0;
 function viewOnboard() {
   const dots = `<div class="ob-dots">${[0,1,2].map(i => `<i class="${i === obStep ? 'on' : ''}"></i>`).join('')}</div>`;
   const shell = (title, mood, body, cls = '') => `<section class="ob scr ${cls}">
     <h1 class="scr-h">${title}</h1>
-    <div class="scr-pet">${petSVG(mood, 300, 'big')}</div>
+    ${mood === 'happy' ? `<div class="scr-pet rig-host" data-mood="happy">${petSVG(mood, 300, 'big rig-fallback')}</div>` : `<div class="scr-pet">${petSVG(mood, 300, 'big')}</div>`}
     <div class="scr-bot">${body}</div></section>`;
   if (obStep === 0) return shell('Labas!<br>Будуймо міст<br>до іспиту?', 'happy', `
       <button class="btn pill" data-act="onb-next">Почати</button>
@@ -356,7 +370,7 @@ function viewToday() {
   <section class="scr home ${mood}">
     <h1 class="scr-h">${hello()},<br>Olegai!</h1>
     <button class="say" data-act="bubble" aria-label="Показати переклад"><b class="lt">${esc(plt)}</b><small>${esc(pua)}</small></button>
-    <button class="scr-pet" data-act="pet-tap" aria-label="${esc(petName())}">${petSVG(mood, 280, 'big')}</button>
+    <div class="scr-pet rig-host" data-mood="${mood}" aria-label="${esc(petName())}: погладь мене">${petSVG(mood, 280, 'big rig-fallback')}${S.petted ? '' : '<span class="pet-hint">Погладь мене ☝</span>'}</div>
     <div class="scr-bot">
       <p class="scr-lbl">${bs.built} з ${bs.total} дошок</p>
       <div class="slide" style="--p:${Math.round(100 * bs.built / Math.max(1, bs.total))}%"><i></i><b></b></div>
@@ -365,15 +379,6 @@ function viewToday() {
         : `<div class="all-done">${ic('check')}<span>Сьогодні все зроблено!</span></div>`}
     </div>
   </section>
-  <details class="fold plan">
-    <summary><span>План на сьогодні</span><em>${doneN}/${tasks.length}</em></summary>
-    <ol class="tasks">${tasks.map((t, i) => {
-      const d = rec.done[t.key];
-      return `<li class="task ${d ? 'done' : ''}"><button data-act="${t.act}" data-task="${t.key}">
-        <span class="tnum">${d ? ic('check') : i+1}</span>
-        <span class="tbody"><b>${esc(t.title)}</b></span>
-        <span class="tmin">${t.min} хв</span></button></li>`; }).join('')}</ol>
-  </details>
   <div class="tiles">
     <div class="tile">${ic('flame')}<b>${st}</b><small>${plural(st,'день','дні','днів')} поспіль</small></div>
     <div class="tile">${ic('dict')}<b>${S.words.length}</b><small>${plural(S.words.length,'слово','слова','слів')}</small></div>
