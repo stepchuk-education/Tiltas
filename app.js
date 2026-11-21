@@ -340,7 +340,7 @@ function viewToday() {
   const st = streak();
   const reminderDue = new Date().toTimeString().slice(0,5) >= S.remind && doneN === 0;
   const mood = petMood(), [plt, pua] = petLine(mood), bs = bridgeState();
-  const moodUa = { happy:'у гарному настрої', proud:'пишається тобою', sad:'сумує без тебе', angry:'трохи злиться' }[mood];
+  const moodUa = { happy:'у гарному настрої', calm:'спокійний', joy:'радіє', proud:'пишається тобою', done:'щасливий: ми на тому березі!', sad:'сумує без тебе', sad2:'дуже сумує без тебе', sad3:'плаче: тебе нема вже тиждень', angry:'трохи злиться' }[mood] || '';
   return `
   <section class="scene ${mood}">
     <div class="bubble"><b class="lt">${esc(plt)}</b><small>${esc(pua)}</small></div>
@@ -598,7 +598,7 @@ function feedback(ok, it, extra = '') {
   const fb = $('#fb');
   const ruleBtn = it.rule ? `<button class="link" data-act="rule-peek:${it.rule}">${ic('read')} Подивитися правило</button>` : '';
   Q.run = ok ? 0 : (Q.run || 0) + 1;
-  const pm = ok ? (Q.res.filter(r => r.ok).length % 3 === 0 ? 'proud' : 'happy') : Q.run >= 2 ? 'angry' : 'sad';
+  const pm = ok ? (Q.res.filter(r => r.ok).length % 3 === 0 ? 'proud' : 'joy') : Q.run >= 2 ? 'angry' : 'sad';
   const say1 = ok ? pick(['Šaunu!', 'Teisingai!', 'Puiku!', 'Gerai!']) : Q.run >= 2 ? 'Grrr! Dar kartą…' : 'Oi… Nieko baisaus.';
   fb.innerHTML = `<div class="fbbox ${ok ? 'ok' : 'no'}"><div class="fbpet">${petSVG(pm, 52)}<span class="lt">${say1}</span></div><b>${ok ? 'Правильно!' : 'Не зовсім.'}</b>${extra}${it.ex ? `<p>${it.ex}</p>` : ''}${ruleBtn}</div>
     <button class="btn primary big" data-act="qnext" id="qnext">${Q.i + 1 < Q.items.length ? 'Далі' : 'Завершити'}</button>`;

@@ -501,6 +501,8 @@ body { background: radial-gradient(900px 520px at 50% -160px, color-mix(in srgb,
 
 /* Персонаж */
 .pet { overflow: visible; display: inline-block; }
+.petimg { object-fit: contain; user-select: none; -webkit-user-drag: none; }
+img.petimg { filter: drop-shadow(0 6px 8px rgba(20, 40, 90, .18)); }
 .pet:not(.onbridge) { animation: bob 3.2s ease-in-out infinite; }
 .pet.angry { animation: shake .45s ease-in-out 3; }
 .pet.proud { animation: hop 1.2s ease-in-out infinite; }

@@ -1,7 +1,7 @@
 /* Офлайн-режим Tiltas: зберігає файли застосунку, щоб він відкривався без інтернету.
    Після зміни файлів збільште номер версії, щоб телефони отримали оновлення. */
-const VERSION = 'tiltas-v2';
-const FILES = ['./', 'index.html', 'lang.js', 'konst.js', 'exams.js', 'app.js', 'mascot.js', 'chatai.js', 'extra.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
+const VERSION = 'tiltas-v3';
+const FILES = ['./', 'index.html', 'lang.js', 'konst.js', 'exams.js', 'app.js', 'mascot.js', 'chatai.js', 'extra.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'pet/main.webp', 'pet/calm.webp', 'pet/joy2.webp', 'pet/joy3.webp', 'pet/happiness.webp', 'pet/sad.webp', 'pet/hurt.webp', 'pet/despair.webp', 'pet/annoyed.webp'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

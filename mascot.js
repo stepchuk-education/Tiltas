@@ -1,8 +1,18 @@
 /* ===================== Tiltas: персонаж, міст, інтро ===================== */
 
-/* Коли будуть готові зображення персонажа, впишіть сюди шляхи до файлів, напр. { happy:'pet/happy.png', sad:'pet/sad.png', ... }.
-   Поки їх немає, персонаж малюється вектором. */
-const PET_IMG = {};
+/* Зображення персонажа (папка pet/). Якщо якогось настрою тут немає, персонаж малюється вектором.
+   У папці pet/ лежать усі 21 емоції — будь-яку можна підставити замість наявної. */
+const PET_IMG = {
+  happy: 'pet/main.webp',       // звичайний настрій
+  calm:  'pet/calm.webp',
+  joy:   'pet/joy2.webp',       // правильна відповідь
+  proud: 'pet/joy3.webp',       // день виконано, хороший результат
+  done:  'pet/happiness.webp',  // міст добудовано
+  sad:   'pet/sad.webp',        // помилка; 2–3 дні без занять
+  sad2:  'pet/hurt.webp',       // 4–6 днів без занять
+  sad3:  'pet/despair.webp',    // тиждень і більше без занять
+  angry: 'pet/annoyed.webp',    // кілька помилок поспіль
+};
 /* Шлях до відео-інтро (напр. 'intro.mp4'). Поки порожньо — показується анімований мультик із міста. */
 const INTRO_VIDEO = '';
 
@@ -23,8 +33,15 @@ const PET_LINES = {
 const petName = () => (S.pet && S.pet.trim()) || 'Pūkas';
 
 let petUid = 0;
+const moodBase = m => m === 'joy' || m === 'calm' ? 'happy' : m === 'done' ? 'proud' : m.replace(/\d+$/, '');
 function petSVG(mood = 'happy', size = 96, cls = '') {
-  if (PET_IMG[mood]) return `<img class="pet ${mood} ${cls}" src="${PET_IMG[mood]}" width="${size}" height="${size}" alt="${esc(petName())}">`;
+  if (PET_IMG[mood]) {
+    const c = `pet petimg ${moodBase(mood)} ${mood} ${cls}`;
+    return cls.includes('onbridge')
+      ? `<image class="${c}" href="${PET_IMG[mood]}" width="${size}" height="${size}"/>`
+      : `<img class="${c}" src="${PET_IMG[mood]}" width="${size}" height="${size}" alt="${esc(petName())}" draggable="false">`;
+  }
+  mood = moodBase(mood);
   const id = 'p' + (++petUid), [c1, c2] = PET_COLORS[mood] || PET_COLORS.happy;
   const eyes = mood === 'proud'
     ? `<path d="M38 60 q8 -9 16 0 M66 60 q8 -9 16 0" stroke="#16264a" stroke-width="4" fill="none" stroke-linecap="round"/>`
@@ -61,9 +78,9 @@ function bridgeState() {
 function petMood() {
   if (S.flash && Date.now() - S.flash.t < 90000) return S.flash.mood;
   const { total, built } = bridgeState();
-  if (built >= total) return 'proud';
-  const last = lastActiveDate();
-  if (S.onboarded && (last ? diffDays(last, todayStr()) >= 2 : dayIdx() >= 2)) return 'sad';
+  if (built >= total) return 'done';
+  const last = lastActiveDate(), away = last ? diffDays(last, todayStr()) : dayIdx();
+  if (S.onboarded && away >= 2) return away >= 7 ? 'sad3' : away >= 4 ? 'sad2' : 'sad';
   const tasks = todayPlan(), rec = dayRec();
   if (tasks.length && tasks.every(t => rec.done[t.key])) return 'proud';
   return 'happy';
@@ -71,7 +88,7 @@ function petMood() {
 function petFlash(mood) { S.flash = { mood, t: Date.now() }; }
 function petLine(mood) {
   const { total, built } = bridgeState();
-  const list = built >= total ? PET_LINES.done : (PET_LINES[mood] || PET_LINES.happy);
+  const list = built >= total ? PET_LINES.done : (PET_LINES[mood] || PET_LINES[moodBase(mood)] || PET_LINES.happy);
   return list[(new Date().getDate() + built) % list.length];
 }
 
