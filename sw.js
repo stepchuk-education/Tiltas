@@ -1,6 +1,6 @@
 /* Офлайн-режим Tiltas: зберігає файли застосунку, щоб він відкривався без інтернету.
    Після зміни файлів збільште номер версії, щоб телефони отримали оновлення. */
-const VERSION = 'tiltas-v1';
+const VERSION = 'tiltas-v2';
 const FILES = ['./', 'index.html', 'lang.js', 'konst.js', 'exams.js', 'app.js', 'mascot.js', 'chatai.js', 'extra.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
