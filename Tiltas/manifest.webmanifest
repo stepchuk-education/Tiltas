@@ -1,0 +1,17 @@
+{
+  "name": "Tiltas — литовська A2 і Конституція",
+  "short_name": "Tiltas",
+  "description": "Тренажер до іспитів з литовської мови (A2) і основ Конституції Литви.",
+  "lang": "uk",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c2b66",
+  "theme_color": "#1f5fe0",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
