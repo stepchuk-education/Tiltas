@@ -3,15 +3,23 @@
 /* Зображення персонажа (папка pet/). Якщо якогось настрою тут немає, персонаж малюється вектором.
    У папці pet/ лежать усі 21 емоції — будь-яку можна підставити замість наявної. */
 const PET_IMG = {
-  happy: 'pet/main.webp',       // звичайний настрій
-  calm:  'pet/calm.webp',
-  joy:   'pet/joy2.webp',       // правильна відповідь
-  proud: 'pet/joy3.webp',       // день виконано, хороший результат
-  done:  'pet/happiness.webp',  // міст добудовано
-  sad:   'pet/sad.webp',        // помилка; 2–3 дні без занять
-  sad2:  'pet/hurt.webp',       // 4–6 днів без занять
-  sad3:  'pet/despair.webp',    // тиждень і більше без занять
-  angry: 'pet/annoyed.webp',    // кілька помилок поспіль
+  /* спокій — блакитний */
+  happy:  'pet/main.webp',        // звичайний настрій
+  calm:   'pet/calm.webp',
+  /* радість — світлішає до білого */
+  joy:    'pet/excited.webp',     // правильна відповідь
+  joy2:   'pet/joy3.webp',        // кілька правильних поспіль, день виконано
+  joy3:   'pet/happiness.webp',   // серія правильних, чудовий результат
+  proud:  'pet/joy3.webp',
+  done:   'pet/happiness.webp',   // міст добудовано
+  /* злість — від рожевого до червоного */
+  angry:  'pet/annoyed.webp',     // помилка
+  angry2: 'pet/anger2.webp',      // дві помилки поспіль
+  angry3: 'pet/rage.webp',        // три і більше поспіль
+  /* сум — насичений синій */
+  sad:    'pet/sad2.webp',        // 2–3 дні без занять
+  sad2:   'pet/hurt.webp',        // 4–6 днів
+  sad3:   'pet/despair.webp',     // тиждень і більше
 };
 /* Чіткіші великі версії для показу на весь екран. */
 const PET_IMG_BIG = { happy: 'pet/main-big.webp' };

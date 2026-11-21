@@ -616,16 +616,45 @@ function renderQ() {
       <div class="btnrow grade" hidden><button class="btn bad" data-act="fgrade" data-ok="0">${ic('x')} Не пам’ятав</button><button class="btn good" data-act="fgrade" data-ok="1">${ic('check')} Пам’ятав</button></div>`;
   }
   box.innerHTML = head + body + '<div id="fb"></div>';
+  ensurePeek(box);
   const inp = $('#qin'); if (inp) { inp.focus(); inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); checkType(); } }); }
+}
+/* ===== Pūkas у вправах: виглядає знизу, вистрибує на відповідь ===== */
+function ensurePeek(box) {
+  const host = box.closest('.sheet-in'); if (!host || host.querySelector('.peek')) return;
+  host.classList.add('has-peek');
+  host.insertAdjacentHTML('beforeend', `<div class="peek" aria-hidden="true"><img src="${PET_IMG.happy}" alt=""></div>`);
+}
+function petBurst(ok, mood, word, big) {
+  const host = document.querySelector('.sheet-in.has-peek') || document.querySelector('.sheet-in'); if (!host) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  host.querySelector('.burst')?.remove();
+  const src = document.querySelector('.opt.wrong, .opt.right, #qin') , hr = host.getBoundingClientRect();
+  const r = src ? src.getBoundingClientRect() : { left: hr.left + hr.width / 2, top: hr.top + hr.height / 2, width: 0, height: 0 };
+  const x = r.left - hr.left + r.width / 2, y = r.top - hr.top + r.height / 2;
+  let parts = '';
+  if (ok) for (let i = 0; i < (big ? 34 : 18); i++) {
+    const a = Math.random() * Math.PI * 2, d = 80 + Math.random() * (big ? 260 : 160);
+    parts += `<i class="cf" style="--x:${x}px;--y:${y}px;--tx:${Math.cos(a) * d}px;--ty:${Math.sin(a) * d - 60}px;--r:${Math.random() * 720 - 360}deg;--c:${['#ffffff', '#ffd166', '#8fc2ff', '#cfe3ff'][i % 4]};--dl:${Math.random() * .12}s">${i % 3 ? '' : '✦'}</i>`;
+  } else for (let i = 0; i < 6; i++) parts += `<i class="puff" style="--dx:${(i % 2 ? 1 : -1) * (30 + i * 10)}px;--dl:${.35 + i * .07}s"></i>`;
+  const el = document.createElement('div');
+  el.className = `burst ${ok ? 'ok' : 'no'} ${big ? 'big' : ''}`;
+  el.style.setProperty('--ox', x + 'px'); el.style.setProperty('--oy', y + 'px');
+  el.innerHTML = `<div class="b-wash"></div>${parts}<div class="b-pet"><b class="b-word lt">${esc(word)}</b><img src="${PET_IMG[mood] || PET_IMG.happy}" alt="">${ok ? '' : '<span class="steam"></span>'}</div>`;
+  host.appendChild(el); host.classList.add('bursting');
+  if (!ok) { host.classList.remove('shake'); void host.offsetWidth; host.classList.add('shake'); }
+  setTimeout(() => { el.remove(); host.classList.remove('bursting'); }, big ? 2300 : 1900);
 }
 function fmtTime(ms) { const s = Math.floor(ms/1000); return `${Math.floor(s/60)}:${pad(s%60)}`; }
 function feedback(ok, it, extra = '') {
   const fb = $('#fb');
   const ruleBtn = it.rule ? `<button class="link" data-act="rule-peek:${it.rule}">${ic('read')} Подивитися правило</button>` : '';
   Q.run = ok ? 0 : (Q.run || 0) + 1;
-  const pm = ok ? (Q.res.filter(r => r.ok).length % 3 === 0 ? 'proud' : 'joy') : Q.run >= 2 ? 'angry' : 'sad';
-  const say1 = ok ? pick(['Šaunu!', 'Teisingai!', 'Puiku!', 'Gerai!']) : Q.run >= 2 ? 'Grrr! Dar kartą…' : 'Oi… Nieko baisaus.';
-  fb.innerHTML = `<div class="fbbox ${ok ? 'ok' : 'no'}"><div class="fbpet">${petSVG(pm, 52)}<span class="lt">${say1}</span></div><b>${ok ? 'Правильно!' : 'Не зовсім.'}</b>${extra}${it.ex ? `<p>${it.ex}</p>` : ''}${ruleBtn}</div>
+  Q.okRun = ok ? (Q.okRun || 0) + 1 : 0;
+  const pm = ok ? (Q.okRun >= 5 ? 'joy3' : Q.okRun >= 3 ? 'joy2' : 'joy') : Q.run >= 3 ? 'angry3' : Q.run >= 2 ? 'angry2' : 'angry';
+  const say1 = ok ? (Q.okRun >= 5 ? 'Nuostabu!' : Q.okRun >= 3 ? 'Šaunu!' : pick(['Teisingai!', 'Puiku!', 'Gerai!'])) : Q.run >= 3 ? 'Grrr!!! Susikaupk!' : Q.run >= 2 ? 'Grrr! Dar kartą…' : 'Hmm… Ne taip.';
+  petBurst(ok, pm, say1, Q.okRun === 3 || Q.okRun === 5);
+  fb.innerHTML = `<div class="fbbox ${ok ? 'ok' : 'no'}"><div class="fbpet">${petSVG(pm, 64)}<span class="lt">${say1}</span></div><b>${ok ? 'Правильно!' : 'Не зовсім.'}</b>${extra}${it.ex ? `<p>${it.ex}</p>` : ''}${ruleBtn}</div>
     <button class="btn primary big" data-act="qnext" id="qnext">${Q.i + 1 < Q.items.length ? 'Далі' : 'Завершити'}</button>`;
   $('#qnext').focus();
 }
@@ -653,8 +682,10 @@ function finishQuiz() {
   const nextBtn = Q.next ? `<button class="btn primary big" data-act="${Q.next.act}">${Q.next.label}</button>` : '';
   const wrong = res.filter(r => !r.ok);
   const p = n ? Math.round(100 * ok / n) : 0;
-  const rm = p >= 85 ? 'proud' : p >= 60 ? 'happy' : wrong.length >= 3 ? 'angry' : 'sad';
-  if (p >= 85 || wrong.length >= 3) petFlash(rm);
+  const rm = p >= 85 ? 'joy3' : p >= 60 ? 'joy' : wrong.length >= 3 ? 'angry2' : 'angry';
+  if (p >= 85 || wrong.length >= 3) petFlash(p >= 85 ? 'proud' : 'angry');
+  document.querySelector('.peek')?.remove();
+  if (p >= 85) setTimeout(() => petBurst(true, 'joy3', 'Puiku!', true), 250);
   $('#quiz').innerHTML = `<div class="result">
     <div class="respet">${petSVG(rm, 110)}<div class="ring big" style="--p:${p}"><span>${ok}/${n}</span></div></div>
     <h2>${p >= 85 ? 'Puiku! Чудовий результат.' : p >= 60 ? 'Gerai! Ще трохи практики.' : 'Нічого, саме для цього й тренуємося.'}</h2>

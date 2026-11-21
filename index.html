@@ -657,7 +657,39 @@ main.onbm { padding: 0; max-width: none; min-height: 100%; }
 .fold-in p { margin: 0 0 8px; }
 @keyframes fadein { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 .pet.hop1 { animation: hop 0.6s ease-in-out 1 !important; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :root[data-theme="dark"] </style>
+/* ===== Pūkas у вправах ===== */
+.sheet-in { position: relative; overflow: hidden; }
+.sheet-in.has-peek .sheet-b { padding-bottom: 120px; }
+.peek { position: absolute; z-index: 4; right: 18px; bottom: -58px; width: 112px; pointer-events: none; transition: transform .35s cubic-bezier(.3,1.6,.5,1); animation: peekWait 4s ease-in-out infinite; transform-origin: 50% 100%; }
+.peek img { width: 100%; display: block; filter: drop-shadow(0 -4px 12px rgba(0,0,0,.25)); }
+@keyframes peekWait { 0%, 100% { transform: translateY(0) rotate(0); } 20% { transform: translateY(-6px) rotate(-6deg); } 45% { transform: translateY(0) rotate(0); } 70% { transform: translateY(-4px) rotate(5deg); } }
+.sheet-in.bursting .peek { transform: translateY(120%); animation: none; }
+.burst { position: absolute; inset: 0; z-index: 30; pointer-events: none; overflow: hidden; }
+.b-wash { position: absolute; inset: 0; }
+.burst.ok .b-wash { background: radial-gradient(circle at var(--ox) var(--oy), rgba(255,255,255,.55), rgba(143,194,255,.25) 30%, transparent 60%); animation: washOk 1.4s ease-out forwards; }
+.burst.ok.big .b-wash { background: radial-gradient(circle at var(--ox) var(--oy), rgba(255,255,255,.9), rgba(200,225,255,.6) 40%, rgba(143,194,255,.2) 75%); animation: washOk 2s ease-out forwards; }
+.burst.no .b-wash { box-shadow: inset 0 0 90px 30px rgba(230,50,60,.55); animation: washNo 1.3s ease-out forwards; }
+@keyframes washOk { 0% { opacity: 0; transform: scale(.4); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(1.6); } }
+@keyframes washNo { 0%, 100% { opacity: 0; } 15%, 45% { opacity: 1; } 30% { opacity: .5; } }
+.cf { position: absolute; left: var(--x); top: var(--y); width: 9px; height: 9px; border-radius: 2px; background: var(--c); color: var(--c); font-style: normal; font-size: 18px; line-height: 9px; animation: cf 1.3s cubic-bezier(.2,.7,.3,1) var(--dl) forwards; opacity: 0; }
+.cf:not(:empty) { background: none; }
+@keyframes cf { 0% { opacity: 1; transform: translate(-50%,-50%) scale(.4); } 70% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty) + 80px)) rotate(var(--r)) scale(1); } }
+.b-pet { position: absolute; left: 50%; bottom: 0; width: min(250px, 62%); transform: translate(-50%, 110%); animation: petUp 1.8s cubic-bezier(.3,1.5,.5,1) forwards; }
+.burst.big .b-pet { width: min(330px, 80%); animation-duration: 2.2s; }
+.b-pet img { width: 100%; display: block; filter: drop-shadow(0 10px 24px rgba(0,0,0,.3)); }
+@keyframes petUp { 0% { transform: translate(-50%, 110%); } 22% { transform: translate(-50%, -4%); } 30% { transform: translate(-50%, 2%) scale(1.03,.97); } 38%, 78% { transform: translate(-50%, 0); } 100% { transform: translate(-50%, 115%); } }
+.burst.no .b-pet img { animation: stomp .5s ease-in-out .45s 2; }
+@keyframes stomp { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-5deg) translateY(-4px); } 75% { transform: rotate(5deg) translateY(-4px); } }
+.b-word { position: absolute; left: 50%; top: -14px; transform: translate(-50%, -100%) scale(.5); white-space: nowrap; font: 800 1.6rem var(--f-display); padding: 8px 16px; border-radius: 18px; background: #fff; color: #1d4fd0; box-shadow: 0 8px 20px rgba(0,0,0,.2); opacity: 0; animation: wordPop 1.8s ease forwards; }
+.burst.no .b-word { color: #d0303a; }
+.burst.big .b-word { font-size: 2rem; }
+@keyframes wordPop { 0%, 20% { opacity: 0; transform: translate(-50%, -100%) scale(.5); } 30% { opacity: 1; transform: translate(-50%, -100%) scale(1.12); } 38%, 72% { opacity: 1; transform: translate(-50%, -100%) scale(1); } 85%, 100% { opacity: 0; transform: translate(-50%, -100%) scale(.9); } }
+.puff { position: absolute; left: 50%; bottom: 62%; width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,.85); opacity: 0; animation: puff2 .9s ease-out var(--dl) forwards; }
+@keyframes puff2 { 0% { opacity: .9; transform: translate(-50%, 0) scale(.4); } 100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), -70px) scale(1.6); } }
+.sheet-in.shake { animation: shakeX .45s ease; }
+@keyframes shakeX { 20% { transform: translateX(-8px); } 40% { transform: translateX(7px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(3px); } }
+.fbpet .pet { flex: none; }
+</style>
 </head>
 <body>
 <aside class="desk-side" aria-hidden="true">
