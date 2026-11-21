@@ -287,6 +287,7 @@ function readHash() { const h = location.hash.replace('#',''); if (TABS.some(t =
 
 function render() {
   $('#main').classList.toggle('onbm', !S.onboarded);
+  $('#device').classList.toggle('lav', !S.onboarded || tab === 'today');
   if (!S.onboarded) { $('#main').innerHTML = viewOnboard(); $('#nav').innerHTML = ''; $('#top').innerHTML = ''; $('#tutor').hidden = true; return; }
   $('#tutor').hidden = false;
   $('#top').innerHTML = topBar();
@@ -309,12 +310,12 @@ function topBar() {
 let obStep = 0;
 function viewOnboard() {
   const dots = `<div class="ob-dots">${[0,1,2].map(i => `<i class="${i === obStep ? 'on' : ''}"></i>`).join('')}</div>`;
-  if (obStep === 0) return `<section class="ob ob0">
-    <div class="ob-stage">${petSVG('happy', 300, 'ob-big')}</div>
-    <div class="ob-card">
-      <h1>Labas!</h1>
-      <p class="lead">Будуймо міст до іспиту разом.</p>
-      <button class="btn primary big" data-act="onb-next">Почати</button>
+  const shell = (title, mood, body, cls = '') => `<section class="ob scr ${cls}">
+    <h1 class="scr-h">${title}</h1>
+    <div class="scr-pet">${petSVG(mood, 300, 'big')}</div>
+    <div class="scr-bot">${body}</div></section>`;
+  if (obStep === 0) return shell('Labas!<br>Будуймо міст<br>до іспиту?', 'happy', `
+      <button class="btn pill" data-act="onb-next">Почати</button>
       <details class="more"><summary>Що вміє Tiltas?</summary>
         <ul class="onb-list">
           <li>${ic('target')}<span>Діагностика покаже слабкі місця.</span></li>
@@ -322,23 +323,14 @@ function viewOnboard() {
           <li>${ic('chat')}<span>ШІ перевіряє письмо й говоріння.</span></li>
         </ul>
         <p class="fine">Литовська мова A2 і основи Конституції — за програмами NŠA.</p>
-      </details>
-    </div></section>`;
-  if (obStep === 1) return `<section class="ob ob1">
-    <div class="ob-stage sm">${petSVG('joy', 250)}</div>
-    <div class="ob-card">${dots}
-      <h1>Як мене звати?</h1>
+      </details>`);
+  if (obStep === 1) return shell('Як мене<br>звати?', 'joy', `${dots}
       <input class="ob-in" id="ob-pet" maxlength="20" value="${esc(S.pet || 'Pūkas')}" autocomplete="off" aria-label="Ім'я друга">
-      <button class="btn primary big" data-act="onb-next">Далі</button>
-    </div></section>`;
-  return `<section class="ob ob2">
-    <div class="ob-stage sm">${petSVG('calm', 250)}</div>
-    <div class="ob-card">${dots}
-      <h1>Коли іспит?</h1>
+      <button class="btn pill" data-act="onb-next">Далі</button>`);
+  return shell('Коли<br>іспит?', 'calm', `${dots}
       <input class="ob-in" type="date" id="ob-exam" value="${S.exam}" aria-label="Дата іспиту">
       <label class="ob-lbl"><span>Нагадувати о</span><input class="ob-in sm" type="time" id="ob-time" value="${S.remind}"></label>
-      <button class="btn primary big" data-act="onb-go">Готово</button>
-    </div></section>`;
+      <button class="btn pill" data-act="onb-go">Готово</button>`);
 }
 
 function hello() {
@@ -359,16 +351,20 @@ function viewToday() {
   const mood = petMood(), [plt, pua] = petLine(mood), bs = bridgeState();
   const next = tasks.find(t => !rec.done[t.key]);
   const left = tasks.filter(t => !rec.done[t.key]).reduce((a,t) => a + t.min, 0);
-  const planks = Array.from({ length: bs.total }, (_, i) => `<i class="${i < bs.built ? 'on' : ''}"></i>`).join('');
+  const left0 = Math.max(daysLeft(), 0);
   return `
-  <section class="home-hero ${mood}">
+  <section class="scr home ${mood}">
+    <h1 class="scr-h">${hello()},<br>Olegai!</h1>
     <button class="say" data-act="bubble" aria-label="Показати переклад"><b class="lt">${esc(plt)}</b><small>${esc(pua)}</small></button>
-    <button class="hero-pet" data-act="pet-tap" aria-label="${esc(petName())}">${petSVG(mood, 230, 'big')}</button>
-    <div class="planks" aria-label="Міст: ${bs.built} з ${bs.total} дошок">${planks}</div>
-    <p class="hero-cap"><b>${bs.built}</b> з ${bs.total} дошок</p>
+    <button class="scr-pet" data-act="pet-tap" aria-label="${esc(petName())}">${petSVG(mood, 280, 'big')}</button>
+    <div class="scr-bot">
+      <p class="scr-lbl">${bs.built} з ${bs.total} дошок</p>
+      <div class="slide" style="--p:${Math.round(100 * bs.built / Math.max(1, bs.total))}%"><i></i><b></b></div>
+      <div class="slide-ends"><span>Старт</span><span>Іспит · ${left0} ${plural(left0,'день','дні','днів')}</span></div>
+      ${next ? `<button class="btn pill" data-act="${next.act}" data-task="${next.key}">${doneN ? 'Продовжити' : 'Почати заняття'} · ${left} хв</button>`
+        : `<div class="all-done">${ic('check')}<span>Сьогодні все зроблено!</span></div>`}
+    </div>
   </section>
-  ${next ? `<button class="btn primary big go" data-act="${next.act}" data-task="${next.key}">${ic('play')}<span>${doneN ? 'Продовжити' : 'Почати заняття'}</span><small>${left} хв</small></button>`
-    : `<div class="all-done">${ic('check')}<span>Сьогодні все зроблено!</span></div>`}
   <details class="fold plan">
     <summary><span>План на сьогодні</span><em>${doneN}/${tasks.length}</em></summary>
     <ol class="tasks">${tasks.map((t, i) => {
@@ -1086,7 +1082,7 @@ document.addEventListener('click', async e => {
     case 'close': closeSheet(); break;
     case 'onb-next': if ($('#ob-pet')) S.pet = ($('#ob-pet').value || '').trim() || 'Pūkas'; obStep++; render(); $('#app').scrollTop = 0; break;
     case 'bubble': t.classList.toggle('open'); break;
-    case 'pet-tap': { petTaps++; const [l1, l2] = petLine(petMood()); const b = $('.home-hero .say'); if (b) b.innerHTML = `<b class="lt">${esc(l1)}</b><small>${esc(l2)}</small>`; const pe = t.querySelector('.pet'); if (pe) { pe.classList.remove('hop1'); void pe.offsetWidth; pe.classList.add('hop1'); } break; }
+    case 'pet-tap': { petTaps++; const [l1, l2] = petLine(petMood()); const b = $('.home .say'); if (b) b.innerHTML = `<b class="lt">${esc(l1)}</b><small>${esc(l2)}</small>`; const pe = t.querySelector('.pet'); if (pe) { pe.classList.remove('hop1'); void pe.offsetWidth; pe.classList.add('hop1'); } break; }
     case 'onb-go': S.exam = $('#ob-exam').value || S.exam; S.remind = $('#ob-time').value || S.remind; S.start = todayStr(); S.onboarded = true; save(); render(); $('#app').scrollTop = 0; break;
     case 'diag': startDiag(); break;
     case 'review': startReview(false); break;
