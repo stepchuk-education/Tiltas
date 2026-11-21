@@ -615,12 +615,22 @@ main.onbm { padding: 0; max-width: none; min-height: 100%; }
 .pet-hint { position: absolute; z-index: 2; bottom: 2%; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: .85rem; font-weight: 600; color: #fff; background: rgba(255,255,255,.18); backdrop-filter: blur(6px); padding: 6px 12px; border-radius: 20px; pointer-events: none; animation: hintPulse 2.4s ease-in-out infinite; }
 @keyframes hintPulse { 50% { opacity: .55; } }
 .rig-host { position: relative; }
-.rig-host canvas.rig { display: block; width: min(334px, 86vw); aspect-ratio: 1; position: relative; z-index: 1; opacity: 0; transition: opacity .3s; cursor: grab; -webkit-tap-highlight-color: transparent; }
-.ob .rig-host canvas.rig { width: min(356px, 90vw); }
-.rig-host canvas.rig.ready { opacity: 1; }
-.rig-host:has(canvas.rig.ready) .rig-fallback { display: none; }
-.rig-host:has(canvas.rig) .rig-fallback { position: absolute; bottom: 4%; left: 50%; transform: translateX(-50%); animation: none; }
-.rig-host .heart { position: absolute; z-index: 3; pointer-events: none; color: #ff7aa2; font-style: normal; font-size: 22px; text-shadow: 0 2px 6px rgba(0,0,0,.15); animation: heartUp 1.2s ease-out forwards; }
+.rig-host.live .rig-fallback { display: none; }
+.live-pet { position: relative; z-index: 1; width: min(290px, 74vw); cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none; }
+.ob .live-pet { width: min(300px, 76vw); }
+.lp-body { position: relative; transform-origin: 50% 96%; animation: lpBreath 3.6s ease-in-out infinite; }
+.lp-body img { display: block; width: 100%; height: auto; -webkit-user-drag: none; pointer-events: none; }
+.lp-face { position: absolute; inset: 0; opacity: 0; transition: opacity .35s ease; }
+.live-pet.react .lp-face { opacity: 1; }
+.live-pet.react .lp-base { opacity: 0; transition: opacity .35s ease; }
+.lp-base { transition: opacity .35s ease; }
+.lp-body.bounce { animation: lpBounce .5s ease, lpBreath 3.6s ease-in-out .5s infinite; }
+.lp-body.petting { animation: lpPet .9s ease-in-out infinite; }
+@keyframes lpBreath { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.012, 1.022); } }
+@keyframes lpBounce { 0% { transform: scale(1); } 30% { transform: scale(1.05, .94); } 60% { transform: scale(.97, 1.04) translateY(-6px); } 100% { transform: scale(1); } }
+@keyframes lpPet { 0%, 100% { transform: rotate(0) scale(1); } 25% { transform: rotate(-2deg) scale(1.01, .99); } 75% { transform: rotate(2deg) scale(1.01, .99); } }
+@media (prefers-reduced-motion: reduce) { .lp-body, .lp-body.bounce, .lp-body.petting { animation: none; } }
+.live-pet .heart { position: absolute; z-index: 3; pointer-events: none; color: #ff7aa2; font-style: normal; font-size: 22px; text-shadow: 0 2px 6px rgba(0,0,0,.15); animation: heartUp 1.2s ease-out forwards; }
 @keyframes heartUp { from { opacity: 1; transform: translate(-50%, -50%) scale(.6); } to { opacity: 0; transform: translate(calc(-50% + var(--dx)), -120px) scale(1.3); } }
 .say.pop { animation: sayPop .4s ease; }
 @keyframes sayPop { 40% { transform: scale(1.08); } }
