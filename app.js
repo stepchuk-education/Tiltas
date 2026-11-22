@@ -263,19 +263,28 @@ function toast(msg) {
   clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 3500);
 }
 const sheetStack = [];
+/* Кольори розділів: усе про мову — світле, Конституція — темна (незалежно від теми телефона). */
+function applyTheme() {
+  const top = sheetStack[sheetStack.length - 1];
+  const zone = top ? top.dataset.zone : (tab === 'konst' ? 'konst' : '');
+  document.documentElement.dataset.theme = zone === 'konst' ? 'dark' : 'light';
+}
 function openSheet(html, opts = {}) {
   const el = document.createElement('div');
   el.className = 'sheet' + (opts.small ? ' small' : '');
+  el.dataset.zone = opts.zone || (sheetStack.length ? sheetStack[sheetStack.length - 1].dataset.zone : '') || '';
   el.innerHTML = `<div class="sheet-in" role="dialog" aria-modal="true"><header class="sheet-h"><button class="iconbtn" data-act="close" aria-label="Закрити">${ic(opts.small ? 'x' : 'back')}</button><div class="sheet-t">${opts.title || ''}</div></header><div class="sheet-b">${html}</div></div>`;
   $('#device').appendChild(el);
   sheetStack.push(el);
   document.body.classList.add('noscroll');
+  applyTheme();
   requestAnimationFrame(() => el.classList.add('open'));
   return el.querySelector('.sheet-b');
 }
 function closeSheet() {
   const el = sheetStack.pop(); if (!el) return;
   if (!sheetStack.length) setTimeout(() => dispatchEvent(new Event('tiltas-idle')), 300);
+  setTimeout(applyTheme, 200);
   if (cap.tts) { try { cap.tts.stop(); } catch(e) {} }
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   if (dictOn && cap.dict) cap.dict.stop().catch(()=>{});
@@ -301,6 +310,7 @@ function render() {
   const v = { today:viewToday, mova:viewLang, konst:viewKonst, klaidos:viewMist, zodynas:viewCards, progresas:viewProg }[tab];
   $('#main').innerHTML = v();
   mountRig();
+  applyTheme();
   if (tab === 'zodynas') { const i = $('#dq'); if (i && dictQuery) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
 }
 
@@ -557,7 +567,7 @@ function runQuiz(cfg) {
   Q = Object.assign({ i:0, res:[] }, cfg);
   Q.items = Q.items.map(it => it.type === 'choice' ? Object.assign({}, it, { _o: it.o.every(x => TF.includes(x)) ? TF.slice() : shuffle(it.o) }) : it);
   Q.plays = {};
-  openSheet('<div id="quiz"></div>', { title: cfg.title });
+  openSheet('<div id="quiz"></div>', { title: cfg.title, zone: cfg.zone });
   Q.t0 = Date.now();
   renderQ();
   if (Q.timer || Q.limit) {
@@ -639,7 +649,7 @@ function feedback(ok, it, extra = '') {
   const pm = ok ? (Q.okRun >= 5 ? 'joy3' : Q.okRun >= 3 ? 'joy2' : 'joy') : Q.run >= 3 ? 'angry3' : Q.run >= 2 ? 'angry2' : 'angry';
   const say1 = ok ? (Q.okRun >= 5 ? 'Nuostabu!' : Q.okRun >= 3 ? 'Šaunu!' : pick(['Teisingai!', 'Puiku!', 'Gerai!'])) : Q.run >= 3 ? 'Grrr!!! Susikaupk!' : Q.run >= 2 ? 'Grrr! Dar kartą…' : 'Hmm… Ne taip.';
   petBurst(ok, pm, say1, Q.okRun === 3 || Q.okRun === 5);
-  fb.innerHTML = `<div class="fbbox ${ok ? 'ok' : 'no'}"><div class="fbpet">${petSVG(pm, 64)}<span class="lt">${say1}</span></div><b>${ok ? 'Правильно!' : 'Не зовсім.'}</b>${extra}${it.ex ? `<p>${it.ex}</p>` : ''}${ruleBtn}</div>
+  fb.innerHTML = `<div class="fbbox ${ok ? 'ok' : 'no'}"><p class="fbsay lt">${say1}</p><b>${ok ? 'Правильно!' : 'Не зовсім.'}</b>${extra}${it.ex ? `<p>${it.ex}</p>` : ''}${ruleBtn}</div>
     <button class="btn primary big" data-act="qnext" id="qnext">${Q.i + 1 < Q.items.length ? 'Далі' : 'Завершити'}</button>`;
   $('#qnext').focus();
 }
@@ -670,7 +680,6 @@ function finishQuiz() {
   const rm = p >= 85 ? 'joy3' : p >= 60 ? 'joy' : wrong.length >= 3 ? 'angry2' : 'angry';
   if (p >= 85 || wrong.length >= 3) petFlash(p >= 85 ? 'proud' : 'angry');
   document.querySelector('.peek')?.remove();
-  if (p >= 85) setTimeout(() => petBurst(true, 'joy3', 'Puiku!', true), 250);
   $('#quiz').innerHTML = `<div class="result">
     <div class="respet">${petSVG(rm, 110)}<div class="ring big" style="--p:${p}"><span>${ok}/${n}</span></div></div>
     <h2>${p >= 85 ? 'Puiku! Чудовий результат.' : p >= 60 ? 'Gerai! Ще трохи практики.' : 'Нічого, саме для цього й тренуємося.'}</h2>
@@ -837,7 +846,7 @@ function openKSec(id, fromTask) {
     ${flag}<div class="theory">${s.theory}</div>
     ${s.nums.length ? `<h3>Числа, які треба знати</h3><div class="nums">${s.nums.map(n => `<div><b>${esc(n[0])}</b><small>${esc(n[1])}</small></div>`).join('')}</div>` : ''}
     <p class="fine">Джерело: Конституція Литовської Республіки (актуальна редакція на e-seimas.lrs.lt).</p>
-    <div class="sticky-cta"><button class="btn primary big" data-act="ksec-q:${id}" data-task="${fromTask ? 1 : ''}">Перевірити себе: ${s.q.length} ${plural(s.q.length,'питання','питання','питань')}</button></div>`, { title:'Конституція' });
+    <div class="sticky-cta"><button class="btn primary big" data-act="ksec-q:${id}" data-task="${fromTask ? 1 : ''}">Перевірити себе: ${s.q.length} ${plural(s.q.length,'питання','питання','питань')}</button></div>`, { title:'Конституція', zone:'konst' });
   if (!S.ksec[id]) S.ksec[id] = { hist:[] };
   if (!S.ksec[id].read) { S.ksec[id].read = todayStr(); s.nums.forEach((n, i) => srsAdd(`n|${id}|${i}`)); save(); }
 }
@@ -845,7 +854,7 @@ function kQuestion(s, i) { const q = s.q[i]; return { type:'choice', q:esc(q.q),
 function kSecQuiz(id) {
   const s = KSECTIONS.find(x => x.id === id);
   closeSheet();
-  runQuiz({ title:s.ua, items: shuffle(s.q.map((q, i) => kQuestion(s, i))), onFinish(res) {
+  runQuiz({ title:s.ua, zone:'konst', items: shuffle(s.q.map((q, i) => kQuestion(s, i))), onFinish(res) {
     res.forEach(x => { pushHist(S.ksec, id, x.ok); if (!x.ok) { srsAdd(`q|${id}|${x.it.qi}`); srsGrade(`q|${id}|${x.it.qi}`, false); } });
     markDone('konst', 15);
     return res.some(x => !x.ok) ? '<p class="muted">Питання з помилками додано в повторення.</p>' : '';
@@ -856,7 +865,7 @@ function startMock() {
   KSECTIONS.forEach(s => { const i = Math.floor(Math.random() * s.q.length); chosen.push([s, i]); });
   const rest = shuffle(KSECTIONS.flatMap(s => s.q.map((_, i) => [s, i])).filter(([s, i]) => !chosen.some(c => c[0] === s && c[1] === i))).slice(0, 20 - chosen.length);
   const items = shuffle(chosen.concat(rest)).map(([s, i]) => kQuestion(s, i));
-  runQuiz({ title:'Пробний іспит', timer:true, items, onFinish(res) {
+  runQuiz({ title:'Пробний іспит', zone:'konst', timer:true, items, onFinish(res) {
     const score = res.filter(x => x.ok).length;
     res.forEach(x => { pushHist(S.ksec, x.it.sec, x.ok); if (!x.ok) { srsAdd(`q|${x.it.sec}|${x.it.qi}`); srsGrade(`q|${x.it.sec}|${x.it.qi}`, false); } });
     S.mocks.push({ date: todayStr(), score });
@@ -873,7 +882,7 @@ function startNumGame() {
     const wrong = shuffle(pool.filter(y => y.n !== x.n)).slice(0, 2).map(y => y.d);
     return { type:'choice', q:`<span class="bignum">${esc(x.n)}</span>Що означає це число?`, o:[x.d, ...wrong], tag:'Гра «Числа Конституції»' };
   });
-  runQuiz({ title:'Числа Конституції', items, onFinish(res) { save(); return ''; } });
+  runQuiz({ title:'Числа Конституції', zone:'konst', items, onFinish(res) { save(); return ''; } });
 }
 function startWeekly() {
   const w = curWeek();

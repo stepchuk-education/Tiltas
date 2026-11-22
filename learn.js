@@ -160,7 +160,7 @@ function openDeck(id, fromTask) {
   queue = (id === 'due' ? shuffle(queue) : queue).slice(0, 20);
   if (!queue.length) { toast('У цій колоді на сьогодні все вивчено. Puiku!'); return; }
   CS = { id, queue, i: 0, ok: 0, again: 0, flipped: false, fromTask, retried: new Set() };
-  openSheet('<div id="cs"></div>', { title });
+  openSheet('<div id="cs"></div>', { title, zone: id === 'kn' ? 'konst' : '' });
   renderCard();
 }
 function renderCard() {
@@ -210,7 +210,6 @@ function finishCards() {
     <h2>${p >= 85 ? 'Puiku!' : p >= 60 ? 'Gerai!' : 'Нічого, повторимо!'}</h2>
     <p class="muted">Знаю: <b>${CS.ok}</b> · ще раз: <b>${CS.again}</b>. Картки повернуться саме тоді, коли почнуть забуватися.</p>
     ${again}<button class="btn primary big" data-act="close">Готово</button></div>`;
-  if (p >= 85) setTimeout(() => typeof petBurst === 'function' && petBurst(true, 'joy3', 'Puiku!', true), 200);
   CS = null;
 }
 
