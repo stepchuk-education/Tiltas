@@ -364,20 +364,14 @@ function viewOnboard() {
     <div class="scr-bot">${body}</div></section>`;
   if (obStep === 0) return shell('Labas!<br>Будуймо міст<br>до іспиту?', 'happy', `
       <button class="btn pill" data-act="onb-next">Почати</button>
-      <details class="more"><summary>Що вміє Tiltas?</summary>
-        <ul class="onb-list">
-          <li>${ic('target')}<span>Діагностика покаже слабкі місця.</span></li>
-          <li>${ic('repeat')}<span>Повторення саме тоді, коли починаєш забувати.</span></li>
-          <li>${ic('chat')}<span>ШІ перевіряє письмо й говоріння.</span></li>
-        </ul>
-        <p class="fine">Литовська мова A2 і основи Конституції — за програмами NŠA.</p>
-      </details>`);
+      <button class="more-btn" data-act="onb-about">Що вміє Tiltas?</button>`);
   if (obStep === 1) return shell('Як мене<br>звати?', 'joy', `${dots}
-      <input class="ob-in" id="ob-pet" maxlength="20" value="${esc(S.pet || 'Pūkas')}" autocomplete="off" aria-label="Ім'я друга">
+      <label class="name-fld"><span>✏️ Можеш дати мені інше ім’я</span>
+        <span class="name-wrap"><input class="ob-in name-in" id="ob-pet" maxlength="20" value="${esc(S.pet || 'Pūkas')}" autocomplete="off" aria-label="Ім’я друга" placeholder="Введіть ім’я"></span></label>
       <button class="btn pill" data-act="onb-next">Далі</button>`);
   return shell('Коли<br>іспит?', 'calm', `${dots}
-      <input class="ob-in" type="date" id="ob-exam" value="${S.exam}" aria-label="Дата іспиту">
-      <label class="ob-lbl"><span>Нагадувати о</span><input class="ob-in sm" type="time" id="ob-time" value="${S.remind}"></label>
+      <label class="name-fld"><span>📅 Дата іспиту (можна змінити)</span><input class="ob-in name-in" type="date" id="ob-exam" value="${S.exam}" aria-label="Дата іспиту"></label>
+      <label class="ob-lbl"><span>Нагадувати о</span><input class="ob-in sm name-in" type="time" id="ob-time" value="${S.remind}"></label>
       <button class="btn pill" data-act="onb-go">Готово</button>`);
 }
 
@@ -961,6 +955,15 @@ document.addEventListener('click', async e => {
   const fromTask = !!t.dataset.task;
   switch (a) {
     case 'close': closeSheet(); break;
+    case 'onb-about': openSheet(`<h2>Що вміє Tiltas</h2>
+      <ul class="onb-list">
+        <li>${ic('target')}<span>Діагностика покаже слабкі місця.</span></li>
+        <li>${ic('dict')}<span>Картки зі словами й правилами — повторення саме тоді, коли починаєш забувати.</span></li>
+        <li>${ic('pen')}<span>Шпаргалки й тести для письма та розмови.</span></li>
+        <li>${ic('konst')}<span>Основи Конституції: розділи, числа, пробний іспит.</span></li>
+      </ul>
+      <p class="fine">Литовська мова A2 і основи Конституції — за програмами NŠA.</p>
+      <button class="btn primary big" data-act="close">Зрозуміло</button>`, { small: true, title: 'Про застосунок' }); break;
     case 'sp-pause': { const ss = speechSynthesis, paused = ss.paused; if (paused) ss.resume(); else ss.pause();
       t.querySelector('.sp-ic').innerHTML = paused ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>' : '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z"/></svg>'; t.querySelector('.sp-t').textContent = paused ? 'Пауза' : 'Продовжити'; break; }
     case 'sp-stop': speechSynthesis.cancel(); speechBar(false); break;
