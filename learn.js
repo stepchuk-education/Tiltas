@@ -91,9 +91,47 @@ const SPEAK_TIME = [
   ['Hmm… Leiskite pagalvoti.', 'Хм… Дайте подумати.'], ['Tai geras klausimas.', 'Це гарне питання.'], ['Kaip čia pasakyti…', 'Як би це сказати…'],
 ];
 
+
+/* ---------- Емодзі для тем і слів ---------- */
+const TOPIC_EMOJI = { t1: '🪪', t2: '🏠', t4: '☀️', t5: '🎣', t11: '🍲', t10: '🛒', t12: '🏤', t6: '✈️', t8: '🩺', t9: '🎓', t3: '🌲', t7: '🤝' };
+const WORD_EMOJI = {
+  'vardas': '🙋', 'pavardė': '📝', 'gimimo data': '🎂', 'amžius': '🔢', 'pilietybė': '🛂', 'vedęs': '💍', 'šeima': '👨‍👩‍👧', 'profesija': '👷', 'gimtoji kalba': '🗣️', 'adresas': '📍',
+  'butas': '🏢', 'namas': '🏠', 'kambarys': '🚪', 'virtuvė': '🍳', 'vonios kambarys': '🛁', 'miegamasis': '🛏️', 'aukštas': '🔝', 'nuoma': '🔑', 'kaimynas': '👋', 'balkonas': '🪴',
+  'keltis': '⏰', 'pusryčiai': '🥐', 'pietūs': '🍽️', 'vakarienė': '🌙', 'darbas': '💼', 'poilsis': '🛋️', 'ryte': '🌅', 'vakare': '🌆', 'dažnai': '🔁', 'kartais': '🎲',
+  'laisvalaikis': '🕶️', 'pomėgis': '🎨', 'žvejoti': '🎣', 'krepšinis': '🏀', 'kinas': '🎬', 'koncertas': '🎤', 'vaikščioti': '🚶', 'savaitgalis': '🗓️', 'sportuoti': '🏋️', 'žiūrėti televizorių': '📺',
+  'duona': '🍞', 'pienas': '🥛', 'mėsa': '🥩', 'daržovės': '🥕', 'vaisiai': '🍎', 'sriuba': '🍲', 'valgiaraštis': '📜', 'sąskaita': '🧾', 'staliukas': '🪑', 'cepelinai': '🥟',
+  'parduotuvė': '🏬', 'kaina': '🏷️', 'kainuoti': '💶', 'nuolaida': '🔖', 'dydis': '📏', 'kasa': '🛒', 'mokėti kortele': '💳', 'grynaisiais': '💵', 'čekis': '🧾', 'pigus / brangus': '⚖️',
+  'paštas': '🏤', 'siuntinys': '📦', 'bankas': '🏦', 'sąskaita banke': '💰', 'policija': '🚓', 'autoservisas': '🔧', 'degalinė': '⛽', 'kirpykla': '💇', 'prašymas': '📄', 'dokumentas': '📁',
+  'kelionė': '🧳', 'bilietas': '🎫', 'traukinys': '🚆', 'autobusų stotis': '🚌', 'oro uostas': '🛫', 'tvarkaraštis': '🕒', 'išvykimas': '🛫', 'atvykimas': '🛬', 'bagažas': '🧳', 'viešbutis': '🏨',
+  'gydytojas': '👨‍⚕️', 'poliklinika': '🏥', 'vaistinė': '💊', 'vaistai': '💊', 'receptas': '📋', 'skauda': '🤕', 'temperatūra': '🌡️', 'sirgti': '🤒', 'užsiregistruoti': '📞', 'odontologas': '🦷',
+  'mokykla': '🏫', 'kursai': '📚', 'mokytojas': '👩‍🏫', 'pamoka': '✏️', 'egzaminas': '📝', 'mokytis': '📖', 'pažymėjimas': '📜', 'išlaikyti egzaminą': '🏆', 'klausti': '❓', 'atsakyti': '💬',
+  'oras': '🌤️', 'ežeras': '🏞️', 'miškas': '🌲', 'jūra': '🌊', 'upė': '🏞️', 'lyja': '🌧️', 'sninga': '❄️', 'šalta': '🥶', 'šilta': '🌞', 'metų laikai': '🍂',
+  'draugas': '🧑‍🤝‍🧑', 'kolega': '👔', 'susitikti': '☕', 'pakviesti': '💌', 'padėti': '🫶', 'sveikinti': '🎉', 'gimtadienis': '🎂', 'dovana': '🎁', 'atsiprašyti': '🙏', 'susipažinti': '🤝',
+};
+const wEmoji = (lt, tid) => WORD_EMOJI[lt] || TOPIC_EMOJI[tid] || '🔹';
+
+/* ---------- Тема: сітка карток зі словами ---------- */
+function openTopic(id) {
+  const t = TOPICS.find(x => x.id === id); if (!t) return;
+  const st = deckStats(deckById(id));
+  openSheet(`<div class="topic-head"><span class="temo">${TOPIC_EMOJI[id] || '📘'}</span><div><p class="eyebrow">Тиждень ${t.week} · ${st.learned}/${st.total} вивчено</p><h1>${esc(t.ua)}</h1><p class="lt muted">${esc(t.lt)}</p></div></div>
+    <p class="hint-line">👆 Торкніться картки — побачите переклад</p>
+    <div class="wgrid">${t.words.map((w, i) => `<button class="wtile" data-act="wflip" style="--d:${i * 0.04}s"><span class="wt-in">
+      <span class="wt-f"><i>${wEmoji(w[0], id)}</i><b class="lt">${esc(w[0])}</b></span>
+      <span class="wt-b"><i>${wEmoji(w[0], id)}</i><b>${esc(w[1])}</b><em class="iconbtn sm" data-act="say" data-text="${esc(w[0].replace(/ \/ /g, ', '))}" aria-label="Озвучити">${ic('speaker')}</em></span>
+    </span></button>`).join('')}</div>
+    <div class="btnrow"><button class="btn primary big" data-act="deck:${id}">${ic('dict')} Вчити картками</button><button class="btn big" data-act="topic-test:${id}">${ic('target')} Тест</button></div>`, { title: 'Слова' });
+}
+function topicTest(id) {
+  const t = TOPICS.find(x => x.id === id); if (!t) return;
+  const items = shuffle(t.words).slice(0, 8).map(w => { const o = shuffle(t.words.filter(x => x !== w)).slice(0, 2);
+    return { type: 'choice', q: `<span class="qemo">${wEmoji(w[0], id)}</span> Що означає <b class="lt">«${esc(w[0])}»</b>?`, o: [w[1], o[0][1], o[1][1]], tag: t.ua, say: w[0] }; });
+  runQuiz({ title: t.ua, items });
+}
+
 /* ---------- Колоди карток ---------- */
 function cardDecks() {
-  const decks = TOPICS.map(t => ({ id: t.id, title: t.ua, sub: t.lt, icon: 'dict', cards: t.words.map(w => ({ f: w[0], b: w[1] })) }));
+  const decks = TOPICS.map(t => ({ id: t.id, title: t.ua, sub: t.lt, icon: 'dict', emoji: TOPIC_EMOJI[t.id], cards: t.words.map(w => ({ f: w[0], b: w[1], e: wEmoji(w[0], t.id) })) }));
   decks.push({ id: 'link', title: 'Сполучні слова', sub: 'ir, bet, nes, todėl…', icon: 'repeat', cards: LINKERS.map(l => ({ f: l[0], b: l[1], ex: l[2] })) });
   decks.push({ id: 'wphr', title: 'Фрази для листа', sub: 'Labas, Tomai! Su pagarba…', icon: 'pen', cards: WRITE_PLAN.flatMap(s => s.ph).map(p => ({ f: p[0], b: p[1] })) });
   decks.push({ id: 'sphr', title: 'Фрази для розмови', sub: 'Manau, kad… Gal galite pakartoti?', icon: 'mic', cards: SPEAK_START.concat(SPEAK_TIME, RESCUE).map(p => ({ f: p[0], b: p[1] })) });
@@ -128,7 +166,7 @@ const DECK_COLORS = [
 function viewCards() {
   const due = allDue(), mine = mineDeck(), ms = deckStats(mine);
   const tile = (d, i) => { const s = deckStats(d), p = s.total ? Math.round(100 * s.learned / s.total) : 0;
-    return `<button class="deck" data-act="deck:${d.id}" style="--dg:${DECK_COLORS[i % DECK_COLORS.length]}">${ic(d.icon)}<b>${esc(d.title)}</b><small class="${d.ua ? '' : 'lt'}">${esc(d.sub)}</small>
+    return `<button class="deck" data-act="deck:${d.id}" style="--dg:${DECK_COLORS[i % DECK_COLORS.length]}">${d.emoji ? `<span class="demo">${d.emoji}</span>` : ic(d.icon)}<b>${esc(d.title)}</b><small class="${d.ua ? '' : 'lt'}">${esc(d.sub)}</small>
       <span class="dbar"><i style="width:${p}%"></i></span><em>${s.learned}/${s.total}${s.due ? ` · <span class="due">${s.due} повторити</span>` : ''}</em></button>`; };
   const q = dictQuery.trim().toLowerCase();
   const list = S.words.slice().reverse().filter(w => !q || w.lt.toLowerCase().includes(q) || (w.ua || '').toLowerCase().includes(q));
@@ -182,8 +220,8 @@ function renderCard() {
   box.innerHTML = `<div class="qprog"><i style="width:${100 * CS.i / n}%"></i></div>
     <div class="cs-top"><span class="qcount">${CS.i + 1} з ${n}${it.isNew ? ' · <b class="newc">нова</b>' : ''}</span>${it.d.ua ? '' : `<button class="link" data-act="card-rev">${ic('repeat')} ${rev ? 'UA → LT' : 'LT → UA'}</button>`}</div>
     <div class="fc-wrap ${CS.i === 0 && !CS.dealt ? 'deal' : 'next'}" style="--cg:${CS.color || DECK_COLORS[0]}"><div class="fc ${CS.flipped ? 'flip' : ''}" id="fc" data-act="card-flip">
-      <div class="fc-face fc-front"><span class="fc-txt ${ltFront ? 'lt' : ''}">${esc(front)}</span>${sayTxt && !rev ? `<button class="iconbtn" data-act="say" data-text="${esc(sayTxt)}" aria-label="Озвучити">${ic('speaker')}</button>` : ''}<small class="fc-hint">торкніться, щоб перевернути</small></div>
-      <div class="fc-face fc-back"><span class="fc-txt ${ltBack ? 'lt' : ''}">${esc(back)}</span>${it.c.ex ? `<small class="lt fc-ex">${esc(it.c.ex)}</small>` : ''}${sayTxt ? `<button class="iconbtn" data-act="say" data-text="${esc(sayTxt)}" aria-label="Озвучити">${ic('speaker')}</button>` : ''}</div>
+      <div class="fc-face fc-front">${it.c.e ? `<span class="fc-emo">${it.c.e}</span>` : ''}<span class="fc-txt ${ltFront ? 'lt' : ''}">${esc(front)}</span>${sayTxt && !rev ? `<button class="iconbtn" data-act="say" data-text="${esc(sayTxt)}" aria-label="Озвучити">${ic('speaker')}</button>` : ''}<small class="fc-hint">торкніться, щоб перевернути</small></div>
+      <div class="fc-face fc-back">${it.c.e ? `<span class="fc-emo">${it.c.e}</span>` : ''}<span class="fc-txt ${ltBack ? 'lt' : ''}">${esc(back)}</span>${it.c.ex ? `<small class="lt fc-ex">${esc(it.c.ex)}</small>` : ''}${sayTxt ? `<button class="iconbtn" data-act="say" data-text="${esc(sayTxt)}" aria-label="Озвучити">${ic('speaker')}</button>` : ''}</div>
     </div><i class="fc-stamp"></i></div>
     <div class="cs-btns ${CS.flipped ? '' : 'wait'}">
       <button class="btn bad big" data-act="card-grade" data-ok="0">${ic('x')} Ще раз</button>
@@ -338,6 +376,8 @@ function learnAct(a, arg, t, fromTask) {
     case 'card-grade': gradeCard(t.dataset.ok === '1'); return true;
     case 'card-rev': S.cardRev = !S.cardRev; save(); CS.flipped = false; renderCard(); return true;
     case 'guide': openGuide(arg); return true;
+    case 'wflip': t.classList.toggle('on'); return true;
+    case 'topic-test': topicTest(arg); return true;
     case 'guide-test': guideTest(arg); return true;
     case 'w-test': writingTest(arg); return true;
     case 's-test': speakingTest(arg); return true;

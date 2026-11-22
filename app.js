@@ -455,9 +455,9 @@ function viewLang() {
       <section class="card"><h2>Рятівні фрази</h2><p class="muted">На іспиті їх не вважають помилкою: це частина навички спілкування.</p>
       <ul class="phr">${RESCUE.map(p => `<li><button class="iconbtn sm" data-act="say" data-text="${esc(p[0])}" aria-label="Озвучити">${ic('speaker')}</button><span><b class="lt">${esc(p[0])}</b><small>${esc(p[1])}</small></span></li>`).join('')}</ul></section>`;
   } else {
-    body = `<p class="muted">12 тем програми іспиту. Відкрий тему, перевір слова й додай незнайомі до повторення.</p>
-      <div class="list">${TOPICS.map(t => { const n = t.words.filter(w => S.words.some(x => x.lt === w[0])).length;
-        return `<button class="row" data-act="topic:${t.id}"><span class="rowt"><b>${esc(t.ua)}</b><small class="lt">${esc(t.lt)}</small></span><span class="pill ${n ? 'mid' : 'new'}">${n}/${t.words.length} у словнику</span></button>`; }).join('')}</div>`;
+    body = `<p class="muted">12 тем іспиту. Відкрийте тему — і гортайте картки.</p>
+      <div class="list">${TOPICS.map(t => { const n = typeof deckStats === 'function' ? deckStats(deckById(t.id)).learned : 0;
+        return `<button class="row" data-act="topic:${t.id}"><span class="remo">${TOPIC_EMOJI[t.id] || ''}</span><span class="rowt"><b>${esc(t.ua)}</b><small class="lt">${esc(t.lt)}</small></span><span class="pill ${n ? 'mid' : 'new'}">${n}/${t.words.length} вивчено</span></button>`; }).join('')}</div>`;
   }
   return `<h1 class="pageh">Мова A2</h1>
     <div class="seg" role="tablist">${seg.map(([id, t]) => `<button role="tab" aria-selected="${langSeg === id}" class="${langSeg === id ? 'on' : ''}" data-act="seg:${id}">${t}</button>`).join('')}</div>${body}`;
@@ -835,13 +835,6 @@ function aiReport(r, writing) {
 }
 
 /* ----- Теми ----- */
-function openTopic(id) {
-  const t = TOPICS.find(x => x.id === id);
-  openSheet(`<p class="eyebrow">Тема програми · тиждень ${t.week}</p><h1>${esc(t.ua)}</h1><p class="lt muted">${esc(t.lt)}</p>
-    <p class="muted">Перевірте себе: закрийте праву колонку і згадайте переклад. Незнайомі слова додайте до словника.</p>
-    ${glossHtml(t.words)}
-    <button class="btn" data-act="topic-all:${id}">${ic('plus')} Додати всі до повторення</button>`, { title:'Слова' });
-}
 
 /* ----- Конституція: розділ ----- */
 function diagramHtml(key) {
@@ -992,7 +985,6 @@ document.addEventListener('click', async e => {
     case 'write': openWriting(arg); break;
     case 'speak': openSpeaking(arg); break;
     case 'topic': openTopic(arg); break;
-    case 'topic-all': { const tp = TOPICS.find(x => x.id === arg); let n = 0; tp.words.forEach(w => { if (!S.words.some(x => x.lt === w[0])) { S.words.push({ lt:w[0], ua:w[1], ex:'', d:todayStr() }); srsAdd('w|' + w[0]); n++; } }); save(); toast(n ? `Додано ${n} ${plural(n,'слово','слова','слів')}.` : 'Усі слова вже у словнику.'); closeSheet(); openTopic(arg); break; }
     case 'ksec': openKSec(arg, fromTask); break;
     case 'ksec-q': kSecQuiz(arg); break;
     case 'mock': startMock(); break;
