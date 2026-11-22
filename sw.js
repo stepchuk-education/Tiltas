@@ -1,7 +1,7 @@
 /* Офлайн-режим Tiltas: зберігає файли застосунку, щоб він відкривався без інтернету.
    Після зміни файлів збільште номер версії, щоб телефони отримали оновлення. */
-const VERSION = 'tiltas-v10';
-const FILES = ['./', 'index.html', 'lang.js', 'konst.js', 'exams.js', 'app.js', 'mascot.js', 'pet-rig.js', 'chatai.js', 'extra.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'pet/main.webp', 'pet/main-big.webp', 'pet/calm.webp', 'pet/joy2.webp', 'pet/joy3.webp', 'pet/happiness.webp', 'pet/sad.webp', 'pet/hurt.webp', 'pet/despair.webp', 'pet/annoyed.webp', 'pet/content.webp', 'pet/joy1.webp', 'pet/excited.webp', 'pet/anger2.webp', 'pet/rage.webp', 'pet/sad2.webp'];
+const VERSION = 'tiltas-v11';
+const FILES = ['./', 'index.html', 'lang.js', 'konst.js', 'exams.js', 'app.js', 'mascot.js', 'pet-rig.js', 'chatai.js', 'extra.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'pet/main.webp', 'pet/main-big.webp', 'pet/hd-joy.webp', 'pet/hd-bliss.webp', 'pet/hd-angry.webp', 'pet/hd-worry.webp', 'pet/hd-sad.webp', 'pet/calm.webp', 'pet/joy2.webp', 'pet/joy3.webp', 'pet/happiness.webp', 'pet/sad.webp', 'pet/hurt.webp', 'pet/despair.webp', 'pet/annoyed.webp', 'pet/content.webp', 'pet/joy1.webp', 'pet/excited.webp', 'pet/anger2.webp', 'pet/rage.webp', 'pet/sad2.webp'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES.map(f => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting()));

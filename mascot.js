@@ -7,19 +7,19 @@ const PET_IMG = {
   happy:  'pet/main.webp',        // звичайний настрій
   calm:   'pet/calm.webp',
   /* радість — світлішає до білого */
-  joy:    'pet/excited.webp',     // правильна відповідь
-  joy2:   'pet/joy3.webp',        // кілька правильних поспіль, день виконано
-  joy3:   'pet/happiness.webp',   // серія правильних, чудовий результат
-  proud:  'pet/joy3.webp',
-  done:   'pet/happiness.webp',   // міст добудовано
+  joy:    'pet/hd-joy.webp',     // правильна відповідь
+  joy2:   'pet/hd-joy.webp',        // кілька правильних поспіль, день виконано
+  joy3:   'pet/hd-bliss.webp',   // серія правильних, чудовий результат
+  proud:  'pet/hd-joy.webp',
+  done:   'pet/hd-bliss.webp',   // міст добудовано
   /* злість — від рожевого до червоного */
-  angry:  'pet/annoyed.webp',     // помилка
-  angry2: 'pet/anger2.webp',      // дві помилки поспіль
+  angry:  'pet/hd-angry.webp',     // помилка
+  angry2: 'pet/hd-angry.webp',      // дві помилки поспіль
   angry3: 'pet/rage.webp',        // три і більше поспіль
   /* сум — насичений синій */
-  sad:    'pet/sad2.webp',        // 2–3 дні без занять
-  sad2:   'pet/hurt.webp',        // 4–6 днів
-  sad3:   'pet/despair.webp',     // тиждень і більше
+  sad:    'pet/hd-worry.webp',        // 2–3 дні без занять
+  sad2:   'pet/hd-sad.webp',        // 4–6 днів
+  sad3:   'pet/hd-sad.webp',     // тиждень і більше
 };
 /* Чіткіші великі версії для показу на весь екран. */
 const PET_IMG_BIG = { happy: 'pet/main-big.webp' };

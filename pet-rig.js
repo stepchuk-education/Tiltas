@@ -3,11 +3,11 @@
    плавно перемикаємося на картинки емоцій з папки pet/. Якщо колись будуть відео-анімації,
    їх можна підставити сюди ж. */
 const PET_REACT = {
-  pet:   { img: 'pet/content.webp',  lt: 'Murrr… Ačiū!',     ua: 'Муррр… Дякую!',   ms: 1600 },
-  head:  { img: 'pet/joy1.webp',     lt: 'Malonu!',          ua: 'Приємно!',        ms: 1300 },
-  ear:   { img: 'pet/excited.webp',  lt: 'Klausau!',         ua: 'Слухаю!',         ms: 1300 },
-  belly: { img: 'pet/joy2.webp',     lt: 'Hi hi!',           ua: 'Хі-хі!',          ms: 1300 },
-  feet:  { img: 'pet/joy3.webp', lt: 'Cha cha, kutena!', ua: 'Ха-ха, лоскотно!', ms: 1400 },
+  pet:   { img: 'pet/hd-bliss.webp',  lt: 'Murrr… Ačiū!',     ua: 'Муррр… Дякую!',   ms: 1600 },
+  head:  { img: 'pet/hd-bliss.webp',     lt: 'Malonu!',          ua: 'Приємно!',        ms: 1300 },
+  ear:   { img: 'pet/hd-joy.webp',  lt: 'Klausau!',         ua: 'Слухаю!',         ms: 1300 },
+  belly: { img: 'pet/hd-joy.webp',     lt: 'Hi hi!',           ua: 'Хі-хі!',          ms: 1300 },
+  feet:  { img: 'pet/hd-joy.webp', lt: 'Cha cha, kutena!', ua: 'Ха-ха, лоскотно!', ms: 1400 },
 };
 const Rig = {
   el: null, base: null, face: null, mood: 'happy', onSay: null, onPet: null, timers: {}, drag: null,
