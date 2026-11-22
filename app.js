@@ -412,11 +412,12 @@ function viewToday() {
     <button class="say" data-act="bubble" aria-label="Показати переклад"><b class="lt">${esc(plt)}</b><small>${esc(pua)}</small></button>
     <div class="scr-pet rig-host" data-mood="${mood}" aria-label="${esc(petName())}: погладь мене">${petSVG(mood, 280, 'big rig-fallback')}${S.petted ? '' : '<span class="pet-hint">Погладь мене ☝</span>'}</div>
     <div class="scr-bot">
-      <p class="scr-lbl">${bs.built} з ${bs.total} дошок</p>
+      <p class="scr-lbl">${String(bs.built).replace('.', ',')} з ${bs.total} дошок</p>
       <div class="slide" style="--p:${Math.round(100 * bs.built / Math.max(1, bs.total))}%"><i></i><b></b></div>
       <div class="slide-ends"><span>Старт</span><span>${S.examUnknown ? 'Іспит · дату не обрано' : `Іспит · ${left0} ${plural(left0,'день','дні','днів')}`}</span></div>
       ${next ? `<button class="btn pill" data-act="${next.act}" data-task="${next.key}">${doneN ? 'Продовжити' : 'Почати заняття'} · ${left} хв</button>`
         : `<div class="all-done">${ic('check')}<span>Сьогодні все зроблено!</span></div>`}
+      <button class="btn express" data-act="express">⚡ Експрес-урок · 3–4 хв</button>
     </div>
   </section>
   <div class="tiles">

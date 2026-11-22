@@ -78,7 +78,9 @@ function petSVG(mood = 'happy', size = 96, cls = '') {
 function lastActiveDate() { const ds = Object.keys(S.days).filter(d => Object.keys(S.days[d].done || {}).length).sort(); return ds[ds.length - 1] || null; }
 function bridgeState() {
   const total = Math.max(7, diffDays(S.start, S.exam));
-  const built = Math.min(total, Object.values(S.days).filter(r => Object.keys(r.done || {}).length >= 2).length);
+  const full = Object.values(S.days).filter(r => Object.keys(r.done || {}).length >= 2).length;
+  /* ⚡ експрес-урок ≈ 4 хв із ≈40 хв повного заняття → 0,1 дошки */
+  const built = Math.min(total, Math.round((full + (S.exp || 0) * 0.1) * 10) / 10);
   return { total, built };
 }
 function petMood() {
@@ -96,7 +98,7 @@ let petTaps = 0;
 function petLine(mood) {
   const { total, built } = bridgeState();
   const list = built >= total ? PET_LINES.done : (PET_LINES[mood] || PET_LINES[moodBase(mood)] || PET_LINES.happy);
-  const [lt, ua] = list[(new Date().getDate() + built + petTaps) % list.length];
+  const [lt, ua] = list[(new Date().getDate() + Math.floor(built) + petTaps) % list.length];
   const nm = typeof vocName === 'function' ? vocName() : '';
   return [lt.replace('{, name}', nm ? ', ' + nm : ''), ua];
 }
