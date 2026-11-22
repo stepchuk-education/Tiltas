@@ -233,9 +233,11 @@ async function say(text, opts = {}) {
   if ('speechSynthesis' in window) {
     speechSynthesis.cancel();
     const vs = speechSynthesis.getVoices();
-    const v = vs.find(v => /^lt/i.test(v.lang));
-    lines.forEach(t => { const u = new SpeechSynthesisUtterance(t); u.lang = 'lt-LT'; u.rate = opts.rate || 0.9; if (v) u.voice = v; speechSynthesis.speak(u); });
-    if (!v) toast('На цьому пристрої немає литовського голосу — вимова може бути неточною.');
+    /* Литовського голосу на iPhone немає. Тоді беремо найближчий за вимовою: латиський, польський, чеський. */
+    const v = vs.find(v => /^lt/i.test(v.lang)) || vs.find(v => /^lv/i.test(v.lang)) || vs.find(v => /^pl/i.test(v.lang)) || vs.find(v => /^cs/i.test(v.lang));
+    const isLt = v && /^lt/i.test(v.lang);
+    lines.forEach(t => { const u = new SpeechSynthesisUtterance(t); u.lang = v ? v.lang : 'lt-LT'; u.rate = (opts.rate || 0.9) * (isLt ? 1 : 0.92); if (v) u.voice = v; speechSynthesis.speak(u); });
+    if (!isLt && !S.noLtVoiceTold) { S.noLtVoiceTold = true; save(); toast('Литовського голосу на цьому телефоні немає, тож вимова приблизна. Це повідомлення більше не з’явиться.'); }
     return true;
   }
   toast('Озвучення недоступне на цьому пристрої. Текст можна відкрити кнопкою «Показати текст».');
