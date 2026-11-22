@@ -387,6 +387,7 @@ function speakingTest(id) {
 /* ---------- Дії ---------- */
 function learnAct(a, arg, t, fromTask) {
   switch (a) {
+    case 'express': startExpress(); return true;
     case 'deck': {
       /* колода «знімається» з місця й перевертається, потім відкривається сесія */
       if (t.classList.contains('deck') && !matchMedia('(prefers-reduced-motion: reduce)').matches) { t.classList.add('opening'); setTimeout(() => { t.classList.remove('opening'); openDeck(arg, fromTask); }, 380); }
@@ -529,3 +530,25 @@ document.addEventListener('click', e => {
   const w = s.slice(a, b); if (w.length < 2 || /[а-яіїєґ]/i.test(w)) return;
   openWord(w);
 });
+
+/* ---------- ⚡ Експрес-урок (3–4 хв): одне правило + 4 слова однієї теми ---------- */
+function startExpress() {
+  const w = curWeek();
+  const pool = RULES.filter(r => r.week <= w);
+  const r = (weakRules(1)[0]) || pool.sort((a, b) => (ruleM(a.id) ?? -1) - (ruleM(b.id) ?? -1))[0] || RULES[0];
+  const ex = shuffle(r.ex.filter(e => e.o)).slice(0, 3);
+  const ruleQs = ruleItems(r, ex.length >= 3 ? ex : shuffle(r.ex).slice(0, 3));
+  const tdecks = decks().filter(d => TOPICS.some(t => t.id === d.id && t.week <= Math.max(1, w)));
+  const d = tdecks.map(x => [x, deckStats(x)]).sort((a, b) => (b[1].due - a[1].due) || (a[1].learned - b[1].learned))[0][0];
+  const today = todayStr();
+  const idx = d.cards.map((c, i) => i).sort((a, b) => { const sa = S.srs[cardKey(d, a)], sb = S.srs[cardKey(d, b)];
+    const pa = sa ? (sa.d <= today ? 0 : 2) : 1, pb = sb ? (sb.d <= today ? 0 : 2) : 1; return pa - pb || Math.random() - .5; }).slice(0, 4);
+  const wordQs = idx.map(i => { const c = d.cards[i], o = shuffle(d.cards.filter(x => x !== c)).slice(0, 2);
+    return { type: 'choice', q: `<span class="qemo">${c.e || ''}</span> Що означає <b class="lt">«${esc(c.f)}»</b>?`, o: [c.b, o[0].b, o[1].b], tag: '⚡ ' + d.title, say: c.f, ck: cardKey(d, i) }; });
+  const intro = { type: 'flash', tag: '⚡ Правило дня', front: `<b>${esc(r.ua)}</b><small class="lt">${esc(r.lt)}</small>`, back: `<p>${esc(r.summary)}</p>` };
+  runQuiz({ title: '⚡ Експрес-урок', items: [intro].concat(ruleQs, wordQs), onFinish(res) {
+    res.forEach(x => { if (x.it.rule) pushHist(S.rules, x.it.rule, x.ok); if (x.it.ck) { srsAdd(x.it.ck); srsGrade(x.it.ck, x.ok); } });
+    S.exp = (S.exp || 0) + 1; markDone('express', 4);
+    return `<p class="muted">⚡ +0,1 дошки до мосту. Повне заняття (≈40 хв) — ціла дошка, експрес-урок (≈4 хв) — десята частина.</p>`;
+  } });
+}
