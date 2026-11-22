@@ -763,6 +763,35 @@ mark { background: #ffe58a; color: inherit; border-radius: 4px; padding: 0 2px; 
 .fc-emo { font-size: 3rem; line-height: 1; }
 .remo { font-size: 1.5rem; margin-right: 10px; flex: none; }
 .qemo { font-size: 1.6rem; vertical-align: middle; margin-right: 6px; }
+
+/* ===== Інтро-відео ===== */
+.vintro { background: #0b2a66; }
+.vintro .iv { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.iv-scrim { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(5,20,60,.45) 0%, transparent 18%, transparent 58%, rgba(5,20,60,.75) 100%); }
+.iv-bars { position: absolute; top: calc(14px + env(safe-area-inset-top)); left: 14px; right: 14px; display: flex; gap: 5px; z-index: 2; }
+.iv-bars i { flex: 1; height: 3px; border-radius: 3px; background: rgba(255,255,255,.3); overflow: hidden; }
+.iv-bars b { display: block; height: 100%; width: 0; background: #fff; border-radius: 3px; }
+.iv-top { position: absolute; top: calc(28px + env(safe-area-inset-top)); left: 14px; right: 14px; display: flex; justify-content: space-between; z-index: 3; }
+.iv-btn { border: 0; background: rgba(255,255,255,.2); backdrop-filter: blur(10px); color: #fff; font: 700 .95rem var(--f-body); min-width: 42px; height: 42px; padding: 0 14px; border-radius: 22px; cursor: pointer; }
+.iv-cap { position: absolute; left: 22px; right: 22px; bottom: calc(46px + env(safe-area-inset-bottom)); z-index: 2; color: #fff; opacity: 0; transform: translateY(16px); transition: opacity .45s ease, transform .45s cubic-bezier(.3,1.3,.5,1); pointer-events: none; }
+.iv-cap.on { opacity: 1; transform: none; }
+.iv-cap small { color: #fff; display: inline-block; font-size: .85rem; font-weight: 600; padding: 4px 10px; border-radius: 12px; background: rgba(255,255,255,.2); backdrop-filter: blur(8px); margin-bottom: 8px; }
+.iv-cap h2 { margin: 0; font: 800 1.9rem/1.12 var(--f-display); color: #fff; text-shadow: 0 3px 16px rgba(0,0,0,.35); }
+.iv-cap p { margin: 6px 0 0; font-size: 1.1rem; font-weight: 600; text-shadow: 0 2px 10px rgba(0,0,0,.35); }
+.iv-end { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; padding: 30px 22px calc(26px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; color: #fff; background: linear-gradient(180deg, transparent, rgba(5,20,60,.82) 38%); opacity: 0; transform: translateY(30px); pointer-events: none; transition: opacity .5s ease, transform .5s cubic-bezier(.3,1.3,.5,1); }
+.iv-end.on { opacity: 1; transform: none; pointer-events: auto; }
+.iv-logo { display: flex; align-items: center; gap: 10px; color: #fff; }
+.iv-logo svg { width: 46px; height: 30px; }
+.iv-logo b { font: 800 2.4rem var(--f-display); letter-spacing: -.01em; }
+.iv-end p { margin: 0; font-size: 1.15rem; font-weight: 600; opacity: .95; }
+.iv-end .btn.pill { max-width: 360px; }
+.iv-end .autochk { font-size: .85rem; opacity: .85; display: flex; gap: 8px; align-items: center; }
+
+/* ===== Панель озвучення ===== */
+.sbar { position: absolute; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom)); z-index: 40; display: flex; gap: 6px; padding: 6px; border-radius: 30px; background: rgba(13,27,51,.88); backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgba(0,0,0,.3); transform: translate(-50%, 30px); opacity: 0; pointer-events: none; transition: transform .35s cubic-bezier(.3,1.4,.5,1), opacity .25s; }
+.sbar.on { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
+.sbar button { border: 0; background: rgba(255,255,255,.14); color: #fff; height: 44px; min-width: 44px; padding: 0 16px; border-radius: 22px; font: 700 .95rem var(--f-body); display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.sbar button:first-child { background: #fff; color: #0e3a96; }
 </style>
 </head>
 <body>

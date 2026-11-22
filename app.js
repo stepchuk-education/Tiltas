@@ -221,6 +221,14 @@ async function initCaps() {
 
 /* Озвучення литовською */
 let speakingBtn = null;
+/* Панель керування озвученням довгого тексту: пауза, продовження, стоп. */
+function speechBar(on) {
+  let b = document.getElementById('sbar');
+  if (!on) { if (b) b.classList.remove('on'); return; }
+  if (!b) { b = document.createElement('div'); b.id = 'sbar'; b.className = 'sbar'; document.getElementById('device').appendChild(b); }
+  b.innerHTML = `<button data-act="sp-pause"><span class="sp-ic"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></span><span class="sp-t">Пауза</span></button><button data-act="sp-stop" aria-label="Зупинити"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>`;
+  requestAnimationFrame(() => b.classList.add('on'));
+}
 async function say(text, opts = {}) {
   const lines = Array.isArray(text) ? text : [text];
   if (cap.tts && S.voice !== 'browser') {
@@ -236,7 +244,11 @@ async function say(text, opts = {}) {
     /* Литовського голосу на iPhone немає. Тоді беремо найближчий за вимовою: латиський, польський, чеський. */
     const v = vs.find(v => /^lt/i.test(v.lang)) || vs.find(v => /^lv/i.test(v.lang)) || vs.find(v => /^pl/i.test(v.lang)) || vs.find(v => /^cs/i.test(v.lang));
     const isLt = v && /^lt/i.test(v.lang);
-    lines.forEach(t => { const u = new SpeechSynthesisUtterance(t); u.lang = v ? v.lang : 'lt-LT'; u.rate = (opts.rate || 0.9) * (isLt ? 1 : 0.92); if (v) u.voice = v; speechSynthesis.speak(u); });
+    const long = lines.length > 1 || lines.join(' ').length > 60;
+    lines.forEach((t, k) => { const u = new SpeechSynthesisUtterance(t); u.lang = v ? v.lang : 'lt-LT'; u.rate = (opts.rate || 0.9) * (isLt ? 1 : 0.92); if (v) u.voice = v;
+      if (long && k === lines.length - 1) { u.onend = () => speechBar(false); u.onerror = () => speechBar(false); }
+      speechSynthesis.speak(u); });
+    speechBar(long);
     if (!isLt && !S.noLtVoiceTold) { S.noLtVoiceTold = true; save(); toast('Литовського голосу на цьому телефоні немає, тож вимова приблизна. Це повідомлення більше не з’явиться.'); }
     return true;
   }
@@ -290,6 +302,7 @@ function closeSheet() {
   if (!sheetStack.length) setTimeout(mountRig, 220);
   if (cap.tts) { try { cap.tts.stop(); } catch(e) {} }
   if ('speechSynthesis' in window) speechSynthesis.cancel();
+  speechBar(false);
   if (dictOn && cap.dict) cap.dict.stop().catch(()=>{});
   el.remove();
   if (!sheetStack.length) { document.body.classList.remove('noscroll'); render(); }
@@ -966,6 +979,9 @@ document.addEventListener('click', async e => {
   const fromTask = !!t.dataset.task;
   switch (a) {
     case 'close': closeSheet(); break;
+    case 'sp-pause': { const ss = speechSynthesis, paused = ss.paused; if (paused) ss.resume(); else ss.pause();
+      t.querySelector('.sp-ic').innerHTML = paused ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>' : '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z"/></svg>'; t.querySelector('.sp-t').textContent = paused ? 'Пауза' : 'Продовжити'; break; }
+    case 'sp-stop': speechSynthesis.cancel(); speechBar(false); break;
     case 'onb-next': if ($('#ob-pet')) S.pet = ($('#ob-pet').value || '').trim() || 'Pūkas'; obStep++; render(); $('#app').scrollTop = 0; break;
     case 'bubble': t.classList.toggle('open'); break;
     case 'pet-tap': { petTaps++; const [l1, l2] = petLine(petMood()); const b = $('.home .say'); if (b) b.innerHTML = `<b class="lt">${esc(l1)}</b><small>${esc(l2)}</small>`; const pe = t.querySelector('.pet'); if (pe) { pe.classList.remove('hop1'); void pe.offsetWidth; pe.classList.add('hop1'); } break; }

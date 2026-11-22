@@ -24,7 +24,15 @@ const PET_IMG = {
 /* Чіткіші великі версії для показу на весь екран. */
 const PET_IMG_BIG = { happy: 'pet/main-big.webp' };
 /* Шлях до відео-інтро (напр. 'intro.mp4'). Поки порожньо — показується анімований мультик із міста. */
-const INTRO_VIDEO = '';
+const INTRO_VIDEO = 'pet/intro.mp4';
+/* Підписи до інтро: [початок, кінець (с), заголовок, литовською] */
+const INTRO_CAPS = [
+  [0.0, 1.8, 'Це — Pūkas.', 'Čia – Pūkas.', 'Йому дуже треба на той берег.'],
+  [1.8, 3.5, 'Але мосту немає…', 'Tilto nėra…', ''],
+  [3.5, 7.3, 'Кожне завдання — нова дошка.', 'Viena užduotis – viena lenta.', ''],
+  [7.3, 10.0, 'Помилка? Pūkas злиться…', 'Klaida? Nieko baisaus!', '…але не здається.'],
+  [10.0, 12.8, 'Крок за кроком міст росте.', 'Žingsnis po žingsnio.', ''],
+];
 
 const PET_COLORS = {
   happy:  ['#ffffff', '#dbe8fb'],
@@ -150,52 +158,55 @@ function bridgeSVG(built, total, mood, opts = {}) {
 
 /* Інтро */
 function showIntro(onDone) {
+  if (!INTRO_VIDEO) return onDone && onDone();
+  const first = !S.introSeen;
   const el = document.createElement('div');
-  el.className = 'intro';
-  const name = petName();
-  const scenes = [
-    ['Це — ' + name + '.', 'Йому дуже треба на той берег, де на нього чекає іспит.'],
-    ['Але мосту ще немає.', 'Лише річка і кілька самотніх опор.'],
-    ['Кожне завдання — нова дошка.', 'А кожна помилка — привід спробувати ще раз. ' + name + ' трохи злиться, але не здається.'],
-    ['За 6 тижнів міст буде готовий.', 'Tiltas — будуємо разом!'],
-  ];
-  el.innerHTML = `<div class="intro-in">
-    <button class="skip" data-iact="skip">Пропустити</button>
-    ${INTRO_VIDEO ? `<video class="introvid" src="${INTRO_VIDEO}" playsinline controls preload="auto"></video>` : `<div class="stage" id="istage"></div><div class="caption" id="icap"></div>`}
-    <div class="intro-foot">
-      ${INTRO_VIDEO ? '' : `<div class="dotsrow" id="idots">${scenes.map((_, i) => `<i data-i="${i}"></i>`).join('')}</div>`}
-      <label class="autochk"><input type="checkbox" id="iauto" ${S.introAuto ? 'checked' : ''}> Показувати інтро під час запуску</label>
-      <button class="btn primary big" data-iact="next" id="inext">${INTRO_VIDEO ? 'Далі' : 'Далі'}</button>
-    </div></div>`;
+  el.className = 'intro vintro';
+  el.innerHTML = `<video class="iv" src="${INTRO_VIDEO}" playsinline muted autoplay preload="auto"></video>
+    <div class="iv-scrim"></div>
+    <div class="iv-bars">${INTRO_CAPS.map(() => '<i><b></b></i>').join('')}</div>
+    <div class="iv-top">
+      <button class="iv-btn" data-iact="sound" aria-label="Звук">🔇</button>
+      ${first ? '' : '<button class="iv-btn skip" data-iact="skip">Пропустити</button>'}
+    </div>
+    <div class="iv-cap" id="ivcap"></div>
+    <div class="iv-end" id="ivend">
+      <div class="iv-logo"><svg viewBox="0 0 32 20" aria-hidden="true"><path d="M2 15 Q16 2 30 15" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M6 11.5v6M11 8v9.5M16 7v10.5M21 8v9.5M26 11.5v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".6"/><path d="M1 17.5h30" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b>Tiltas</b></div>
+      <p>Міст до іспиту.<br>Будуймо разом!</p>
+      <button class="btn pill" data-iact="go">Почати</button>
+      ${first ? '' : `<label class="autochk"><input type="checkbox" id="iauto" ${S.introAuto ? 'checked' : ''}> Показувати під час запуску</label>`}
+    </div>`;
   $('#device').appendChild(el);
   document.body.classList.add('noscroll');
   requestAnimationFrame(() => el.classList.add('open'));
-  let i = 0, anim = null;
-  const total = 14;
-  const stage = $('#istage', el), cap$ = $('#icap', el);
-  function scene() {
-    clearInterval(anim);
-    const [h, p] = scenes[i];
-    cap$.innerHTML = `<h2>${esc(h)}</h2><p>${esc(p)}</p>`;
-    el.querySelectorAll('#idots i').forEach((d, k) => d.classList.toggle('on', k === i));
-    $('#inext', el).textContent = i === scenes.length - 1 ? 'Почати' : 'Далі';
-    if (i === 0) stage.innerHTML = bridgeSVG(0, total, 'happy', { petSize: 54 });
-    if (i === 1) stage.innerHTML = bridgeSVG(0, total, 'sad', { petSize: 54 });
-    if (i === 2) { let b = 0; stage.innerHTML = bridgeSVG(0, total, 'happy', { petSize: 54 }); anim = setInterval(() => { b++; const mood = b === 6 ? 'angry' : 'happy'; stage.innerHTML = bridgeSVG(Math.min(b, 10), total, mood, { petSize: 54 }); if (b >= 10) clearInterval(anim); }, 450); }
-    if (i === 3) { let b = 10; anim = setInterval(() => { b++; stage.innerHTML = bridgeSVG(Math.min(b, total), total, b >= total ? 'proud' : 'happy', { petSize: 54 }); if (b >= total + 2) clearInterval(anim); }, 300); }
-  }
+  const v = $('.iv', el), cap = $('#ivcap', el), end = $('#ivend', el), bars = el.querySelectorAll('.iv-bars b');
+  let shown = -1, raf = 0, done = false;
+  const tick = () => {
+    const t = v.currentTime || 0;
+    INTRO_CAPS.forEach((c, k) => { bars[k].style.width = (t >= c[1] ? 100 : t <= c[0] ? 0 : 100 * (t - c[0]) / (c[1] - c[0])) + '%'; });
+    const k = INTRO_CAPS.findIndex(c => t >= c[0] && t < c[1]);
+    if (k !== shown) { shown = k;
+      cap.classList.remove('on');
+      if (k >= 0) { const c = INTRO_CAPS[k]; setTimeout(() => { cap.innerHTML = `<small class="lt">${esc(c[3])}</small><h2>${esc(c[2])}</h2>${c[4] ? `<p>${esc(c[4])}</p>` : ''}`; cap.classList.add('on'); }, 160); } }
+    if (t >= INTRO_CAPS[INTRO_CAPS.length - 1][1]) end.classList.add('on');
+    raf = requestAnimationFrame(tick);
+  };
+  tick();
+  v.addEventListener('ended', () => end.classList.add('on'));
+  v.addEventListener('error', () => end.classList.add('on'));
+  const pr = v.play(); if (pr && pr.catch) pr.catch(() => end.classList.add('on'));
   function close() {
-    clearInterval(anim);
-    S.introAuto = $('#iauto', el).checked; S.introSeen = true; save();
-    el.remove(); if (!sheetStack.length) document.body.classList.remove('noscroll');
+    if (done) return; done = true; cancelAnimationFrame(raf);
+    const chk = $('#iauto', el); if (chk) S.introAuto = chk.checked; S.introSeen = true; save();
+    el.classList.remove('open'); setTimeout(() => el.remove(), 300);
+    try { v.pause(); } catch (e) {}
+    if (!sheetStack.length) document.body.classList.remove('noscroll');
     if (onDone) onDone();
   }
   el.addEventListener('click', e => {
     const b = e.target.closest('[data-iact]'); if (!b) return;
-    if (b.dataset.iact === 'skip') return close();
-    if (INTRO_VIDEO) return close();
-    if (i < scenes.length - 1) { i++; scene(); } else close();
+    const a = b.dataset.iact;
+    if (a === 'sound') { v.muted = !v.muted; b.textContent = v.muted ? '🔇' : '🔊'; if (v.paused && !end.classList.contains('on')) v.play().catch(() => {}); }
+    if (a === 'skip' || a === 'go') close();
   });
-  if (!INTRO_VIDEO) scene();
-  else { const v = $('.introvid', el); v.addEventListener('ended', () => { $('#inext', el).textContent = 'Почати'; }); v.play().catch(() => {}); }
 }
