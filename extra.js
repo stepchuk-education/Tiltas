@@ -470,5 +470,15 @@ if (!S.introSeen || S.introAuto) showIntro(() => render());
 (function clock() { const el = $('#sbtime'); if (el) el.textContent = new Date().toTimeString().slice(0, 5); setTimeout(clock, 30000); })();
 /* Офлайн-режим (PWA). У пісочниці claude.ai service worker недоступний — тоді просто пропускаємо. */
 if ('serviceWorker' in navigator && location.protocol === 'https:' && !/claude\.(ai|site)|claudeusercontent/.test(location.hostname)) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  /* Оновлення без зусиль: застосунок з іконки сам перевіряє нову версію щоразу, коли його відкривають,
+     і перезавантажується, щойно вона готова (якщо не відкрита вправа). */
+  const hadCtrl = !!navigator.serviceWorker.controller;
+  let reloading = false;
+  const safeReload = () => { if (reloading) return; if (sheetStack.length) { addEventListener('tiltas-idle', safeReload, { once: true }); return; } reloading = true; location.reload(); };
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadCtrl) safeReload(); });
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+    const check = () => reg.update().catch(() => {});
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+    setInterval(check, 30 * 60 * 1000);
+  }).catch(() => {});
 }

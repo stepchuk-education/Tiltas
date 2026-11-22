@@ -270,6 +270,7 @@ function openSheet(html, opts = {}) {
 }
 function closeSheet() {
   const el = sheetStack.pop(); if (!el) return;
+  if (!sheetStack.length) setTimeout(() => dispatchEvent(new Event('tiltas-idle')), 300);
   if (cap.tts) { try { cap.tts.stop(); } catch(e) {} }
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   if (dictOn && cap.dict) cap.dict.stop().catch(()=>{});
