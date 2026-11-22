@@ -335,7 +335,7 @@ function topBar() {
   const prog = Math.min(100, Math.round(100 * dayIdx() / Math.max(1, diffDays(S.start, S.exam))));
   return `<div class="top-in">
     <div class="brand"><svg class="logo" viewBox="0 0 32 20" aria-hidden="true"><path d="M2 15 Q16 2 30 15" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M6 11.5v6M11 8v9.5M16 7v10.5M21 8v9.5M26 11.5v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".55"/><path d="M1 17.5h30" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Tiltas</span></div>
-    <div class="count" title="Дата іспиту: ${fmtD(S.exam)}"><b>${left >= 0 ? left : 0}</b> ${plural(Math.max(left,0),'день','дні','днів')} до іспиту · тиждень ${w} з 6</div>
+    <div class="count" title="Дата іспиту: ${fmtD(S.exam)}">${S.examUnknown ? 'Дату іспиту не обрано' : `<b>${left >= 0 ? left : 0}</b> ${plural(Math.max(left,0),'день','дні','днів')} до іспиту`} · тиждень ${w} з 6</div>
     <div class="track"><i style="width:${prog}%"></i></div></div>`;
 }
 
@@ -358,7 +358,7 @@ function mountRig() {
 let obStep = 0;
 function viewOnboard() {
   const dots = `<div class="ob-dots">${[0,1,2].map(i => `<i class="${i === obStep ? 'on' : ''}"></i>`).join('')}</div>`;
-  const shell = (title, mood, body, cls = '') => `<section class="ob scr ${cls}">
+  const shell = (title, mood, body, cls = '') => `<section class="ob scr ob${obStep} ${cls}">
     <h1 class="scr-h">${title}</h1>
     <div class="scr-pet rig-host" data-mood="happy">${petSVG('happy', 300, 'big rig-fallback')}</div>
     <div class="scr-bot">${body}</div></section>`;
@@ -370,7 +370,8 @@ function viewOnboard() {
         <span class="name-wrap"><input class="ob-in name-in" id="ob-pet" maxlength="20" value="${esc(S.pet || 'Pūkas')}" autocomplete="off" aria-label="Ім’я друга" placeholder="Введіть ім’я"></span></label>
       <button class="btn pill" data-act="onb-next">Далі</button>`);
   return shell('Коли<br>іспит?', 'calm', `${dots}
-      <label class="name-fld"><span>📅 Дата іспиту (можна змінити)</span><input class="ob-in name-in" type="date" id="ob-exam" value="${S.exam}" aria-label="Дата іспиту"></label>
+      <label class="name-fld"><span>📅 Дата іспиту (можна змінити)</span><input class="ob-in name-in" type="date" id="ob-exam" value="${S.exam}" aria-label="Дата іспиту" ${S.examUnknown ? 'disabled' : ''}></label>
+      <button class="unk-btn ${S.examUnknown ? 'on' : ''}" data-act="ob-unknown">${S.examUnknown ? '✓ ' : ''}Ще не знаю дату</button>
       <label class="ob-lbl"><span>Нагадувати о</span><input class="ob-in sm name-in" type="time" id="ob-time" value="${S.remind}"></label>
       <button class="btn pill" data-act="onb-go">Готово</button>`);
 }
@@ -402,7 +403,7 @@ function viewToday() {
     <div class="scr-bot">
       <p class="scr-lbl">${bs.built} з ${bs.total} дошок</p>
       <div class="slide" style="--p:${Math.round(100 * bs.built / Math.max(1, bs.total))}%"><i></i><b></b></div>
-      <div class="slide-ends"><span>Старт</span><span>Іспит · ${left0} ${plural(left0,'день','дні','днів')}</span></div>
+      <div class="slide-ends"><span>Старт</span><span>${S.examUnknown ? 'Іспит · дату не обрано' : `Іспит · ${left0} ${plural(left0,'день','дні','днів')}`}</span></div>
       ${next ? `<button class="btn pill" data-act="${next.act}" data-task="${next.key}">${doneN ? 'Продовжити' : 'Почати заняття'} · ${left} хв</button>`
         : `<div class="all-done">${ic('check')}<span>Сьогодні все зроблено!</span></div>`}
     </div>
@@ -495,7 +496,7 @@ function viewProg() {
     <div class="card ready"><div class="ring big" style="--p:${kReady}"><span>${kReady}%</span></div><b>Конституція</b><small>розділи + пробні тести</small></div>
   </div>
   <div class="grid4">
-    <div class="mini"><b>${daysLeft() >= 0 ? daysLeft() : 0}</b><small>днів до іспиту</small></div>
+    <div class="mini"><b>${S.examUnknown ? '?' : daysLeft() >= 0 ? daysLeft() : 0}</b><small>${S.examUnknown ? 'дату іспиту не обрано' : 'днів до іспиту'}</small></div>
     <div class="mini"><b>${streak()}</b><small>днів поспіль</small></div>
     <div class="mini"><b>${Math.round(mins/60*10)/10}</b><small>год навчання</small></div>
     <div class="mini"><b>${dueItems().length}</b><small>карток сьогодні</small></div>
@@ -519,7 +520,7 @@ function viewProg() {
   <section class="card"><h2>Пробні іспити з Конституції</h2>${mockChart()}</section>
   <section class="card settings"><h2>${ic('gear')} Налаштування</h2>
     <label class="fld"><span>Ім’я пухнастого друга</span><input id="set-pet" maxlength="20" value="${esc(petName())}" autocomplete="off"></label>
-    <label class="fld"><span>Дата іспиту</span><input type="date" id="set-exam" value="${S.exam}"></label>
+    <label class="fld"><span>Дата іспиту${S.examUnknown ? ' — ще не обрана, план розраховано на 6 тижнів' : ''}</span><input type="date" id="set-exam" value="${S.exam}"></label>
     <label class="fld"><span>Час нагадування</span><input type="time" id="set-time" value="${S.remind}"></label>
     <label class="fld"><span>Озвучення</span><select id="set-voice"><option value="auto" ${S.voice==='auto'?'selected':''}>Автоматично</option><option value="browser" ${S.voice==='browser'?'selected':''}>Голос браузера (литовський)</option></select></label>
     <div class="btnrow"><button class="btn" data-act="intro">${ic('spark')} Переглянути інтро</button><button class="btn" data-act="ics">${ic('bell')} Нагадування в календар</button><button class="btn ghost" data-act="backup">Резервна копія</button></div>
@@ -970,7 +971,8 @@ document.addEventListener('click', async e => {
     case 'onb-next': if ($('#ob-pet')) S.pet = ($('#ob-pet').value || '').trim() || 'Pūkas'; obStep++; render(); $('#app').scrollTop = 0; break;
     case 'bubble': t.classList.toggle('open'); break;
     case 'pet-tap': { petTaps++; const [l1, l2] = petLine(petMood()); const b = $('.home .say'); if (b) b.innerHTML = `<b class="lt">${esc(l1)}</b><small>${esc(l2)}</small>`; const pe = t.querySelector('.pet'); if (pe) { pe.classList.remove('hop1'); void pe.offsetWidth; pe.classList.add('hop1'); } break; }
-    case 'onb-go': S.exam = $('#ob-exam').value || S.exam; S.remind = $('#ob-time').value || S.remind; S.start = todayStr(); S.onboarded = true; save(); render(); $('#app').scrollTop = 0; break;
+    case 'ob-unknown': S.examUnknown = !S.examUnknown; if (S.examUnknown) S.exam = addDays(todayStr(), 42); render(); break;
+    case 'onb-go': if (!S.examUnknown) S.exam = $('#ob-exam').value || S.exam; S.remind = $('#ob-time').value || S.remind; S.start = todayStr(); S.onboarded = true; save(); render(); $('#app').scrollTop = 0; break;
     case 'diag': startDiag(); break;
     case 'review': startReview(false); break;
     case 'review-words': startReview(true); break;
@@ -1023,7 +1025,7 @@ document.addEventListener('input', e => {
   if (e.target.id === 'dq') { dictQuery = e.target.value; render(); }
 });
 document.addEventListener('change', e => {
-  if (e.target.id === 'set-exam' && e.target.value) { S.exam = e.target.value; save(); render(); }
+  if (e.target.id === 'set-exam' && e.target.value) { S.exam = e.target.value; S.examUnknown = false; save(); render(); }
   if (e.target.id === 'set-time' && e.target.value) { S.remind = e.target.value; save(); }
   if (e.target.id === 'set-voice') { S.voice = e.target.value; save(); }
   if (e.target.id === 'set-pet') { S.pet = e.target.value.trim() || 'Pūkas'; save(); }
