@@ -357,7 +357,7 @@ function mountRig() {
 
 let obStep = 0;
 function viewOnboard() {
-  const dots = `<div class="ob-dots">${[0,1,2].map(i => `<i class="${i === obStep ? 'on' : ''}"></i>`).join('')}</div>`;
+  const dots = `<div class="ob-dots">${[0,1,2,3].map(i => `<i class="${i === obStep ? 'on' : ''}"></i>`).join('')}</div>`;
   const shell = (title, mood, body, cls = '') => `<section class="ob scr ob${obStep} ${cls}">
     <h1 class="scr-h">${title}</h1>
     <div class="scr-pet rig-host" data-mood="happy">${petSVG('happy', 300, 'big rig-fallback')}</div>
@@ -365,7 +365,11 @@ function viewOnboard() {
   if (obStep === 0) return shell('Labas!<br>Будуймо міст<br>до іспиту?', 'happy', `
       <button class="btn pill" data-act="onb-next">Почати</button>
       <button class="more-btn" data-act="onb-about">Що вміє Tiltas?</button>`);
-  if (obStep === 1) return shell('Як мене<br>звати?', 'joy', `${dots}
+  if (obStep === 1) return shell('А як<br>тебе звати?', 'happy', `${dots}
+      <label class="name-fld"><span>✏️ Твоє ім’я — я звертатимусь до тебе литовською</span>
+        <span class="name-wrap"><input class="ob-in name-in" id="ob-name" maxlength="24" value="${esc(S.name || '')}" autocomplete="given-name" aria-label="Твоє ім’я" placeholder="Напр., Olegas або Anna"></span></label>
+      <button class="btn pill" data-act="onb-next">Далі</button>`);
+  if (obStep === 2) return shell('Як мене<br>звати?', 'joy', `${dots}
       <label class="name-fld"><span>✏️ Можеш дати мені інше ім’я</span>
         <span class="name-wrap"><input class="ob-in name-in" id="ob-pet" maxlength="20" value="${esc(S.pet || 'Pūkas')}" autocomplete="off" aria-label="Ім’я друга" placeholder="Введіть ім’я"></span></label>
       <button class="btn pill" data-act="onb-next">Далі</button>`);
@@ -376,6 +380,13 @@ function viewOnboard() {
       <button class="btn pill" data-act="onb-go">Готово</button>`);
 }
 
+/* Ім’я користувача і литовський кличний відмінок: Olegas → Olegai, Andrius → Andriau, Rūta → Rūta, Eglė → Egle. */
+function userName() { if (S.name == null && S.onboarded) S.name = 'Olegas'; return (S.name || '').trim(); }
+function vocName(n = userName()) {
+  if (!n) return '';
+  const m = [[/as$/, 'ai'], [/ys$/, 'y'], [/is$/, 'i'], [/us$/, 'au'], [/ė$/, 'e']].find(([re]) => re.test(n));
+  return m ? n.replace(m[0], m[1]) : n;
+}
 function hello() {
   const h = new Date().getHours();
   if (h < 11) return 'Labas rytas';
@@ -397,7 +408,7 @@ function viewToday() {
   const left0 = Math.max(daysLeft(), 0);
   return `
   <section class="scr home ${mood}">
-    <h1 class="scr-h">${hello()},<br>Olegai!</h1>
+    <h1 class="scr-h">${userName() ? `${hello()},<br>${esc(vocName())}!` : `${hello()}!`}</h1>
     <button class="say" data-act="bubble" aria-label="Показати переклад"><b class="lt">${esc(plt)}</b><small>${esc(pua)}</small></button>
     <div class="scr-pet rig-host" data-mood="${mood}" aria-label="${esc(petName())}: погладь мене">${petSVG(mood, 280, 'big rig-fallback')}${S.petted ? '' : '<span class="pet-hint">Погладь мене ☝</span>'}</div>
     <div class="scr-bot">
@@ -519,6 +530,7 @@ function viewProg() {
       return `<button class="bar" data-act="ksec:${s.id}"><span class="bl">${esc(s.ua)}</span><span class="bt"><i class="${c}" style="width:${m || 0}%"></i></span><span class="bv">${m === null ? '—' : m + '%'}</span></button>`; }).join('')}</div></section>
   <section class="card"><h2>Пробні іспити з Конституції</h2>${mockChart()}</section>
   <section class="card settings"><h2>${ic('gear')} Налаштування</h2>
+    <label class="fld"><span>Ваше ім’я</span><input id="set-name" maxlength="24" value="${esc(userName())}" autocomplete="given-name" placeholder="Напр., Olegas"></label>
     <label class="fld"><span>Ім’я пухнастого друга</span><input id="set-pet" maxlength="20" value="${esc(petName())}" autocomplete="off"></label>
     <label class="fld"><span>Дата іспиту${S.examUnknown ? ' — ще не обрана, план розраховано на 6 тижнів' : ''}</span><input type="date" id="set-exam" value="${S.exam}"></label>
     <label class="fld"><span>Час нагадування</span><input type="time" id="set-time" value="${S.remind}"></label>
@@ -605,8 +617,11 @@ function renderQ() {
       <button class="btn primary big" data-act="flip">Показати відповідь</button>
       <div class="btnrow grade" hidden><button class="btn bad" data-act="fgrade" data-ok="0">${ic('x')} Не пам’ятав</button><button class="btn good" data-act="fgrade" data-ok="1">${ic('check')} Пам’ятав</button></div>`;
   }
-  box.innerHTML = head + body + '<div id="fb"></div>';
+  const canSkip = !Q.limit && (it.type === 'choice' || it.type === 'type');
+  const back = it._skipped ? '<p class="qback">↩️ Повертаємося до пропущеного питання</p>' : '';
+  box.innerHTML = head + back + body + (canSkip ? `<button class="skipq" data-act="q-skip">🤷 ${it._skipped ? 'Все одно не знаю — показати відповідь' : 'Не знаю — пропустити'}</button>` : '') + '<div id="fb"></div>';
   ensurePeek(box);
+  if (!S.tapHint) { S.tapHint = true; save(); setTimeout(() => toast('💡 Торкніться будь-якого литовського слова — побачите переклад і зможете додати його в картки.'), 600); }
   const inp = $('#qin'); if (inp) { inp.focus(); inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); checkType(); } }); }
 }
 /* ===== Pūkas у вправах: виглядає знизу, вистрибує на відповідь ===== */
@@ -668,6 +683,21 @@ function feedback(ok, it, extra = '') {
   $('#qnext').focus();
 }
 function record(ok, it, given) { Q.res.push({ ok, it, given }); }
+const answerText = it => it.type === 'choice' ? it.o[0] : it.type === 'type' ? it.a[0] : '';
+/* «Не знаю»: питання повертається через кілька кроків; вдруге — показуємо відповідь. Наприкінці — розбір. */
+function skipQ() {
+  const it = Q.items[Q.i]; if (!it || $('#fb').innerHTML) return;
+  Q.skipped = Q.skipped || [];
+  if (!it._skipped) {
+    it._skipped = true; Q.skipped.push(it);
+    Q.items.splice(Math.min(Q.items.length, Q.i + 4), 0, it);
+    Q.i++; toast('Повернемося до цього питання трохи згодом 👌'); renderQ(); return;
+  }
+  document.querySelectorAll('.opt').forEach(b => { b.disabled = true; if (it._o && it._o[+b.dataset.k] === it.o[0]) b.classList.add('right'); });
+  const inp = $('#qin'); if (inp) inp.disabled = true;
+  record(false, it, '—');
+  feedback(false, it, `<p>Правильна відповідь: <b class="lt">${esc(answerText(it))}</b></p>`);
+}
 function answerChoice(k) {
   const it = Q.items[Q.i]; if ($('#fb').innerHTML) return;
   const chosen = it._o[k], ok = chosen === it.o[0];
@@ -690,6 +720,8 @@ function finishQuiz() {
   const extra = Q.onFinish ? Q.onFinish(res) || '' : '';
   const nextBtn = Q.next ? `<button class="btn primary big" data-act="${Q.next.act}">${Q.next.label}</button>` : '';
   const wrong = res.filter(r => !r.ok);
+  const skipped = (Q.skipped || []).filter((it, i, a) => a.indexOf(it) === i);
+  if (!Q.noLog) skipped.forEach(it => { if (!res.some(r => r.it === it && !r.ok)) logMistake(it, '(пропущено)', Q.title); if (it.rule) srsAdd('r|' + it.rule); });
   const p = n ? Math.round(100 * ok / n) : 0;
   const rm = p >= 85 ? 'joy3' : p >= 60 ? 'joy' : wrong.length >= 3 ? 'angry2' : 'angry';
   if (p >= 85 || wrong.length >= 3) petFlash(p >= 85 ? 'proud' : 'angry');
@@ -698,6 +730,7 @@ function finishQuiz() {
     <div class="respet">${petSVG(rm, 110)}<div class="ring big" style="--p:${p}"><span>${ok}/${n}</span></div></div>
     <h2>${p >= 85 ? 'Puiku! Чудовий результат.' : p >= 60 ? 'Gerai! Ще трохи практики.' : 'Нічого, саме для цього й тренуємося.'}</h2>
     ${extra}
+    ${skipped.length ? `<h3>🤷 Розберімо пропущені</h3><ul class="wrongs skipped">${skipped.map(it => `<li><p>${it.q || it.front || ''}</p><p>Відповідь: <b class="lt">${esc(answerText(it))}</b></p>${it.ex ? `<small>${it.ex}</small>` : ''}${it.rule ? `<button class="link" data-act="rule-peek:${it.rule}">${ic('read')} Вивчити правило</button>` : ''}</li>`).join('')}</ul><p class="fine">Ці питання повернуться в повторенні трохи пізніше.</p>` : ''}
     ${wrong.length ? `<h3>Помилки</h3><ul class="wrongs">${wrong.map(r => `<li><p>${r.it.q || r.it.front || ''}</p><p>Ви: <s>${esc(r.given ?? '—')}</s> → <b class="lt">${esc(r.it.type === 'type' ? r.it.a[0] : r.it.type === 'choice' ? r.it.o[0] : '')}</b></p>${r.it.ex ? `<small>${r.it.ex}</small>` : ''}</li>`).join('')}</ul>` : ''}
     ${wrong.length && !Q.noLog ? '<p class="fine">Усі помилки збережено у вкладці «Помилки» — там їх можна відпрацювати.</p>' : ''}
     ${nextBtn || '<button class="btn primary big" data-act="close">Готово</button>'}</div>`;
@@ -956,6 +989,7 @@ document.addEventListener('click', async e => {
   const fromTask = !!t.dataset.task;
   switch (a) {
     case 'close': closeSheet(); break;
+    case 'q-skip': skipQ(); break;
     case 'onb-about': openSheet(`<h2>Що вміє Tiltas</h2>
       <ul class="onb-list">
         <li>${ic('target')}<span>Діагностика покаже слабкі місця.</span></li>
@@ -968,7 +1002,7 @@ document.addEventListener('click', async e => {
     case 'sp-pause': { const ss = speechSynthesis, paused = ss.paused; if (paused) ss.resume(); else ss.pause();
       t.querySelector('.sp-ic').innerHTML = paused ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>' : '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z"/></svg>'; t.querySelector('.sp-t').textContent = paused ? 'Пауза' : 'Продовжити'; break; }
     case 'sp-stop': speechSynthesis.cancel(); speechBar(false); break;
-    case 'onb-next': if ($('#ob-pet')) S.pet = ($('#ob-pet').value || '').trim() || 'Pūkas'; obStep++; render(); $('#app').scrollTop = 0; break;
+    case 'onb-next': if ($('#ob-name')) S.name = ($('#ob-name').value || '').trim(); if ($('#ob-pet')) S.pet = ($('#ob-pet').value || '').trim() || 'Pūkas'; obStep++; render(); $('#app').scrollTop = 0; break;
     case 'bubble': t.classList.toggle('open'); break;
     case 'pet-tap': { petTaps++; const [l1, l2] = petLine(petMood()); const b = $('.home .say'); if (b) b.innerHTML = `<b class="lt">${esc(l1)}</b><small>${esc(l2)}</small>`; const pe = t.querySelector('.pet'); if (pe) { pe.classList.remove('hop1'); void pe.offsetWidth; pe.classList.add('hop1'); } break; }
     case 'ob-unknown': S.examUnknown = !S.examUnknown; if (S.examUnknown) S.exam = addDays(todayStr(), 42); render(); break;
@@ -1028,6 +1062,7 @@ document.addEventListener('change', e => {
   if (e.target.id === 'set-exam' && e.target.value) { S.exam = e.target.value; S.examUnknown = false; save(); render(); }
   if (e.target.id === 'set-time' && e.target.value) { S.remind = e.target.value; save(); }
   if (e.target.id === 'set-voice') { S.voice = e.target.value; save(); }
+  if (e.target.id === 'set-name') { S.name = e.target.value.trim(); save(); }
   if (e.target.id === 'set-pet') { S.pet = e.target.value.trim() || 'Pūkas'; save(); }
 });
 document.addEventListener('keydown', e => {

@@ -471,7 +471,7 @@ const WRITING = [
 
 /* Говоріння: питання екзаменатора й відповіді-шаблони (чоловічий рід) */
 const SPEAKING = [
- {id:'s1', week:1, q:'Kuo jūs vardu?', ua:'Як вас звати?', a:'Mano vardas Olegas, pavardė [pavardė].'},
+ {id:'s1', week:1, q:'Kuo jūs vardu?', ua:'Як вас звати?', a:'Mano vardas [vardas], pavardė [pavardė].'},
  {id:'s2', week:1, q:'Iš kur jūs esate?', ua:'Звідки ви?', a:'Esu iš Ukrainos, iš [miesto]. Esu ukrainietis.'},
  {id:'s3', week:1, q:'Kur jūs gyvenate?', ua:'Де ви живете?', a:'Gyvenu [Vilniuje]. Gyvenu su [žmona / šeima].'},
  {id:'s4', week:1, q:'Papasakokite apie savo būstą.', ua:'Розкажіть про своє житло.', a:'Gyvenu bute. Jis nedidelis: du kambariai, virtuvė ir vonios kambarys. Man patinka, nes jis šviesus ir šiltas.'},
