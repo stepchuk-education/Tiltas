@@ -285,6 +285,7 @@ function closeSheet() {
   const el = sheetStack.pop(); if (!el) return;
   if (!sheetStack.length) setTimeout(() => dispatchEvent(new Event('tiltas-idle')), 300);
   setTimeout(applyTheme, 200);
+  if (!sheetStack.length) setTimeout(mountRig, 220);
   if (cap.tts) { try { cap.tts.stop(); } catch(e) {} }
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   if (dictOn && cap.dict) cap.dict.stop().catch(()=>{});
@@ -333,7 +334,10 @@ function mountRig() {
     clearTimeout(Rig.timers.say); Rig.timers.say = setTimeout(() => b.classList.remove('pop'), 400);
   };
   Rig.onPet = () => { if (!S.onboarded || S.petted) return; S.petted = true; save(); const h = document.querySelector('.pet-hint'); if (h) h.remove(); };
-  try { Rig.mount(host, host.dataset.mood || 'happy'); } catch (e) { console.warn(e); }
+  const mood = host.dataset.mood || 'happy';
+  /* Сердитий настрій на головному екрані показуємо картинкою; решта — відео. */
+  if (/^angry/.test(mood)) return;
+  try { Rig.mount(host, /^sad/.test(mood) ? 'home-sad' : 'home'); } catch (e) { console.warn(e); }
 }
 
 let obStep = 0;
@@ -615,14 +619,19 @@ function renderQ() {
   const inp = $('#qin'); if (inp) { inp.focus(); inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); checkType(); } }); }
 }
 /* ===== Pūkas у вправах: виглядає знизу, вистрибує на відповідь ===== */
+/* ===== Pūkas у вправах: стоїть унизу й думає, на відповідь виростає й реагує ===== */
 function ensurePeek(box) {
-  const host = box.closest('.sheet-in'); if (!host || host.querySelector('.peek')) return;
+  const host = box.closest('.sheet-in'); if (!host || host.querySelector('.qpet')) return;
   host.classList.add('has-peek');
-  host.insertAdjacentHTML('beforeend', `<div class="peek" aria-hidden="true"><img src="${PET_IMG.happy}" alt=""></div>`);
+  host.insertAdjacentHTML('beforeend', `<div class="qpet" aria-hidden="true"><img class="qpet-img" src="${PET_IMG.happy}" alt=""></div>`);
+  const q = host.querySelector('.qpet');
+  if (typeof Rig !== 'undefined') { try { Rig.mount(q, 'quiz'); } catch (e) {} }
 }
 function petBurst(ok, mood, word, big) {
   const host = document.querySelector('.sheet-in.has-peek') || document.querySelector('.sheet-in'); if (!host) return;
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const qp = host.querySelector('.qpet');
+  const video = qp && qp.classList.contains('ready') && typeof Rig !== 'undefined' && Rig.host === qp;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches && !video) return;
   host.querySelector('.burst')?.remove();
   const src = document.querySelector('.opt.wrong, .opt.right, #qin') , hr = host.getBoundingClientRect();
   const r = src ? src.getBoundingClientRect() : { left: hr.left + hr.width / 2, top: hr.top + hr.height / 2, width: 0, height: 0 };
@@ -631,12 +640,26 @@ function petBurst(ok, mood, word, big) {
   if (ok) for (let i = 0; i < (big ? 34 : 18); i++) {
     const a = Math.random() * Math.PI * 2, d = 80 + Math.random() * (big ? 260 : 160);
     parts += `<i class="cf" style="--x:${x}px;--y:${y}px;--tx:${Math.cos(a) * d}px;--ty:${Math.sin(a) * d - 60}px;--r:${Math.random() * 720 - 360}deg;--c:${['#ffffff', '#ffd166', '#8fc2ff', '#cfe3ff'][i % 4]};--dl:${Math.random() * .12}s">${i % 3 ? '' : '✦'}</i>`;
-  } else for (let i = 0; i < 6; i++) parts += `<i class="puff" style="--dx:${(i % 2 ? 1 : -1) * (30 + i * 10)}px;--dl:${.35 + i * .07}s"></i>`;
+  }
   const el = document.createElement('div');
   el.className = `burst ${ok ? 'ok' : 'no'} ${big ? 'big' : ''}`;
   el.style.setProperty('--ox', x + 'px'); el.style.setProperty('--oy', y + 'px');
-  el.innerHTML = `<div class="b-wash"></div>${parts}<div class="b-pet"><b class="b-word lt">${esc(word)}</b><img src="${PET_IMG[mood] || PET_IMG.happy}" alt="">${ok ? '' : '<span class="steam"></span>'}</div>`;
-  host.appendChild(el); host.classList.add('bursting');
+  if (video) {
+    /* той самий Pūkas виростає і грає відео-реакцію, потім знову стає маленьким і думає */
+    el.innerHTML = `<div class="b-wash"></div>${parts}`;
+    host.appendChild(el);
+    qp.querySelector('.b-word')?.remove();
+    qp.insertAdjacentHTML('beforeend', `<b class="b-word lt">${esc(word)}</b>`);
+    qp.classList.add('big');
+    clearTimeout(Rig.timers.shrink);
+    const shrink = () => { qp.classList.remove('big'); qp.querySelector('.b-word')?.remove(); if (Rig.busy) Rig.next(); };
+    Rig.react(ok ? (big ? 'cheer' : 'joy') : 'angry', () => { clearTimeout(Rig.timers.shrink); qp.classList.remove('big'); qp.querySelector('.b-word')?.remove(); });
+    Rig.timers.shrink = setTimeout(shrink, ok ? 3200 : 3600);
+  } else {
+    if (!ok) for (let i = 0; i < 6; i++) parts += `<i class="puff" style="--dx:${(i % 2 ? 1 : -1) * (30 + i * 10)}px;--dl:${.35 + i * .07}s"></i>`;
+    el.innerHTML = `<div class="b-wash"></div>${parts}<div class="b-pet"><b class="b-word lt">${esc(word)}</b><img src="${PET_IMG[mood] || PET_IMG.happy}" alt=""></div>`;
+    host.appendChild(el); host.classList.add('bursting');
+  }
   if (!ok) { host.classList.remove('shake'); void host.offsetWidth; host.classList.add('shake'); }
   setTimeout(() => { el.remove(); host.classList.remove('bursting'); }, big ? 2300 : 1900);
 }
@@ -679,7 +702,7 @@ function finishQuiz() {
   const p = n ? Math.round(100 * ok / n) : 0;
   const rm = p >= 85 ? 'joy3' : p >= 60 ? 'joy' : wrong.length >= 3 ? 'angry2' : 'angry';
   if (p >= 85 || wrong.length >= 3) petFlash(p >= 85 ? 'proud' : 'angry');
-  document.querySelector('.peek')?.remove();
+  document.querySelector('.qpet')?.remove();
   $('#quiz').innerHTML = `<div class="result">
     <div class="respet">${petSVG(rm, 110)}<div class="ring big" style="--p:${p}"><span>${ok}/${n}</span></div></div>
     <h2>${p >= 85 ? 'Puiku! Чудовий результат.' : p >= 60 ? 'Gerai! Ще трохи практики.' : 'Нічого, саме для цього й тренуємося.'}</h2>
