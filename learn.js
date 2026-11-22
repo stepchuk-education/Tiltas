@@ -53,7 +53,7 @@ const WRITE_PLAN = [
   { lt: 'Pabaiga', ua: 'Кінець', tip: 'Попросіть відповісти або побажайте чогось.',
     ph: [['Parašyk, ar galėsi ateiti.', 'Напиши, чи зможеш прийти.'], ['Lauksiu tavo laiško.', 'Чекатиму твого листа.'], ['Iki greito susitikimo!', 'До швидкої зустрічі!'], ['Gero savaitgalio!', 'Гарних вихідних!']] },
   { lt: 'Atsisveikinimas', ua: 'Підпис', tip: 'Прощання й ваше ім’я.',
-    ph: [['Iki! Olegas', 'Бувай! Олег'], ['Linkėjimai, Olegas', 'Вітаю, Олег'], ['Su pagarba, Olegas', 'З повагою, Олег (офіційно)']] },
+    ph: [['Iki! [vardas]', 'Бувай! [ім’я]'], ['Linkėjimai, [vardas]', 'Вітаю, [ім’я]'], ['Su pagarba, [vardas]', 'З повагою, [ім’я] (офіційно)']] },
 ];
 const WRITE_TIPS = [
   '50–80 слів — це приблизно 6–9 коротких речень.',
@@ -146,7 +146,7 @@ function cardDecks() {
 let DECKS = null;
 const decks = () => DECKS || (DECKS = cardDecks());
 const deckById = id => id === 'mine' ? mineDeck() : decks().find(d => d.id === id);
-function mineDeck() { return { id: 'mine', title: 'Мої слова', sub: 'слова, які ви додали', icon: 'plus', cards: S.words.map(w => ({ f: w.lt, b: w.ua, ex: w.ex, key: 'w|' + w.lt })) }; }
+function mineDeck() { return { id: 'mine', title: 'Мої слова', sub: 'слова, які ви додали', icon: 'plus', emoji: '⭐', cards: S.words.map(w => ({ f: w.lt, b: w.ua, ex: w.ex, key: 'w|' + w.lt })) }; }
 const cardKey = (d, i) => d.cards[i].key || `c|${d.id}|${i}`;
 function deckStats(d) {
   const t = todayStr(); let learned = 0, due = 0, seen = 0;
@@ -182,9 +182,10 @@ function viewCards() {
   <div class="seg cmode" role="tablist">${[['words', '🔤 Слова'], ['gram', '🧩 Граматика'], ['mix', '🔀 Мікс']].map(([k, t]) => `<button role="tab" aria-selected="${mode === k}" class="${mode === k ? 'on' : ''}" data-act="cmode:${k}">${t}</button>`).join('')}</div>
   ${dueM ? `<button class="btn primary big" data-act="deck:due:${mode}">${ic('repeat')} Повторити на сьогодні · ${dueM}</button>` : ''}
   ${mode === 'mix' ? `<button class="btn ${dueM ? '' : 'primary '}big" data-act="deck:mix">🔀 Мікс: нові слова й правила</button>` : ''}
+  ${mode !== 'gram' && mine.cards.length ? `<h3 class="wk">⭐ Мої слова</h3><div class="decks">${tile(mine, 6)}</div>` : ''}
   ${mode !== 'gram' ? `<h3 class="wk">Слова за темами іспиту</h3><div class="decks">${words.map(tile).join('')}</div>` : ''}
   ${mode !== 'words' ? `<h3 class="wk">Граматика</h3><div class="decks">${gram.map((d, i) => tile(d, i + 2)).join('')}</div>` : ''}
-  ${mode !== 'gram' ? `<h3 class="wk">Фрази й шпаргалки</h3><div class="decks">${phr.map((d, i) => tile(d, i + 3)).join('')}${mine.cards.length ? tile(mine, 9) : ''}</div>` : ''}
+  ${mode !== 'gram' ? `<h3 class="wk">Фрази й шпаргалки</h3><div class="decks">${phr.map((d, i) => tile(d, i + 3)).join('')}</div>` : ''}
   <details class="fold mywords"><summary><span>${ic('plus')} Мої слова · ${S.words.length}</span></summary>
     <div class="fold-in">
       <div class="addw">
@@ -209,17 +210,19 @@ function openDeck(id, fromTask) {
     if (s ? s.d <= t : !onlyDue) queue.push({ d, i, k, c, isNew: !s }); });
   let title;
   const inMode = (d, m) => m === 'gram' ? d.gram : m === 'words' ? !d.gram : true;
-  if (/^due/.test(id)) { const m = id.split(':')[1] || 'mix'; decks().concat([mineDeck()]).filter(d => inMode(d, m)).forEach(d => take(d, true)); title = 'Повторення карток'; }
+  if (/^due/.test(id)) { const m = id.split(':')[1] || 'mix'; decks().concat([mineDeck()]).filter(d => inMode(d, m)).forEach(d => take(d, true)); queue = shuffle(queue); title = 'Повторення карток'; }
   else if (id === 'mix') { /* мікс: нове з поточних колод слів і правил */
     const w = curWeek(), cur = decks().filter(d => d.id !== 'kn' && !(TOPICS.find(t => t.id === d.id)?.week > w) && !(RULES.find(r => 'g-' + r.id === d.id)?.week > w));
     cur.forEach(d => take(d, true)); const due = queue.slice(); queue = [];
     shuffle(cur).forEach(d => take(d, false)); const fresh = shuffle(queue.filter(x => x.isNew));
     const fw = fresh.filter(x => !x.d.gram), fg = fresh.filter(x => x.d.gram);
     const mixNew = []; while (mixNew.length < 12 && (fw.length || fg.length)) { if (fw.length) mixNew.push(fw.shift()); if (fg.length && mixNew.length < 12) mixNew.push(fg.shift()); }
-    queue = shuffle(due.concat(mixNew)); title = 'Мікс: слова й правила'; }
+    const mineD = mineDeck(); take(mineD, false);
+    queue = queue.filter(x => x.d.id === 'mine').concat(shuffle(due.concat(mixNew))); title = 'Мікс: слова й правила'; }
   else { const d = deckById(id); if (!d) return; title = d.title; take(d, false);
     const due = queue.filter(x => !x.isNew), fresh = queue.filter(x => x.isNew); queue = shuffle(due).concat(fresh.slice(0, Math.max(5, 12 - due.length))); }
-  queue = (/^due/.test(id) ? shuffle(queue) : queue).slice(0, 20);
+  if (/^due|^mix/.test(id)) { const mineQ = queue.filter(x => x.d.id === 'mine'); queue = mineQ.concat(queue.filter(x => x.d.id !== 'mine')); }
+  queue = queue.slice(0, 20);
   if (!queue.length) { toast('У цій колоді на сьогодні все вивчено. Puiku!'); return; }
   const di = decks().findIndex(d => d.id === id);
   CS = { id, queue, i: 0, ok: 0, again: 0, flipped: false, fromTask, retried: new Set(), color: DECK_COLORS[(di < 0 ? 0 : di < 12 ? di : di - 9) % DECK_COLORS.length] };
@@ -392,6 +395,8 @@ function learnAct(a, arg, t, fromTask) {
     case 'card-flip': { if (t.dataset.moved) { delete t.dataset.moved; return true; } if (!CS) return true; CS.flipped = !CS.flipped; t.classList.toggle('flip', CS.flipped); document.querySelector('.cs-btns')?.classList.toggle('wait', !CS.flipped); return true; }
     case 'card-grade': gradeCard(t.dataset.ok === '1'); return true;
     case 'cmode': S.cardMode = arg; save(); render(); return true;
+    case 'word-add': { const w = t.dataset.w, ua = ($('#wp-ua')?.value || '').trim(); if (!ua) { toast('Впишіть переклад для картки.'); $('#wp-ua')?.focus(); return true; }
+      if (addWord(w, ua, '')) { closeSheet(); toast('⭐ Додано в «Мої слова». Повторимо першими!'); if (tab === 'zodynas') render(); } return true; }
     case 'skill': openSkill(arg); return true;
     case 'cheat': openCheat(arg); return true;
     case 'card-rev': S.cardRev = !S.cardRev; save(); CS.flipped = false; renderCard(); return true;
@@ -477,3 +482,50 @@ function openCheat(k) {
     <p class="muted">На іспиті їх не вважають помилкою — це частина навички спілкування.</p>${phraseList(RESCUE)}
     <div class="btnrow"><button class="btn primary big" data-act="deck:sphr">${ic('dict')} Картки</button></div>`, { title: 'Рятівні фрази' });
 }
+
+/* ---------- Переклад слова на дотик ---------- */
+let LEX = null;
+function lexicon() {
+  if (LEX) return LEX;
+  LEX = Object.assign({}, typeof DICT !== 'undefined' ? DICT : {});
+  const put = (lt, ua) => { if (!lt || !ua) return; const k = lt.toLowerCase().trim(); if (!LEX[k]) LEX[k] = ua; };
+  TOPICS.forEach(t => t.words.forEach(w => { put(w[0], w[1]); if (!/ /.test(w[0])) put(w[0], w[1]); }));
+  LINKERS.forEach(l => l[0].split(' / ').forEach(x => put(x, l[1])));
+  (READING || []).concat(LISTENING || []).forEach(r => (r.gloss || []).forEach(g => put(g[0], g[1])));
+  Object.entries(FIELD_UA).forEach(([k, v]) => put(k, v));
+  return LEX;
+}
+function wordLookup(w) {
+  const k = w.toLowerCase(), L = lexicon();
+  const mine = S.words.find(x => x.lt.toLowerCase() === k); if (mine) return { ua: mine.ua, mine: true };
+  if (L[k]) return { ua: L[k] };
+  /* схожа форма: спільна основа (литовські закінчення змінюються) */
+  let best = null;
+  for (const key in L) { if (key.includes(' ') || key.length < 4) continue;
+    const stem = key.slice(0, Math.max(4, key.length - 3));
+    if (k.startsWith(stem) && Math.abs(k.length - key.length) <= 4 && (!best || stem.length > best.stem)) best = { key, stem: stem.length }; }
+  return best ? { ua: L[best.key], form: best.key } : null;
+}
+function openWord(w) {
+  const r = wordLookup(w), inMine = S.words.some(x => x.lt.toLowerCase() === w.toLowerCase());
+  openSheet(`<div class="wpop">
+    <div class="wp-head"><b class="lt">${esc(w)}</b><button class="iconbtn" data-act="say" data-text="${esc(w)}" aria-label="Озвучити">${ic('speaker')}</button></div>
+    ${r ? `<p class="wp-tr">${esc(r.ua)}</p>${r.form ? `<p class="fine">Схоже на слово <b class="lt">${esc(r.form)}</b> — інша форма.</p>` : ''}` : `<p class="muted">Цього слова поки немає у словнику застосунку.</p>`}
+    <a class="link" href="https://translate.google.com/?sl=lt&tl=uk&text=${encodeURIComponent(w)}&op=translate" target="_blank" rel="noopener">${ic('lang')} Перекласти в Google ↗</a>
+    ${inMine ? '<p class="wp-ok">⭐ Уже у ваших картках</p>' : `<label class="fld"><span>Переклад для картки</span><input id="wp-ua" value="${esc(r ? r.ua : '')}" placeholder="Впишіть переклад" autocomplete="off"></label>
+    <button class="btn primary big" data-act="word-add" data-w="${esc(w)}">➕ Додати в мої картки</button>`}
+  </div>`, { small: true, title: 'Переклад' });
+}
+document.addEventListener('click', e => {
+  const t = e.target;
+  if (!(t instanceof Element) || t.closest('[data-act], button, a, input, textarea, select, label, .fc')) return;
+  const box = t.closest('.lt, .ltext, .qq, .tbl, .cases, .ctx, .taskbox, .fc-ex'); if (!box) return;
+  let node, off;
+  if (document.caretRangeFromPoint) { const rg = document.caretRangeFromPoint(e.clientX, e.clientY); if (!rg) return; node = rg.startContainer; off = rg.startOffset; }
+  else if (document.caretPositionFromPoint) { const p = document.caretPositionFromPoint(e.clientX, e.clientY); if (!p) return; node = p.offsetNode; off = p.offset; }
+  if (!node || node.nodeType !== 3) return;
+  const s = node.textContent, isL = ch => /[A-Za-ząčęėįšųūžĄČĘĖĮŠŲŪŽ]/.test(ch);
+  let a = off, b = off; while (a > 0 && isL(s[a - 1])) a--; while (b < s.length && isL(s[b])) b++;
+  const w = s.slice(a, b); if (w.length < 2 || /[а-яіїєґ]/i.test(w)) return;
+  openWord(w);
+});

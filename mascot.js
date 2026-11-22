@@ -29,7 +29,7 @@ const PET_COLORS = {
   proud:  ['#ffffff', '#bcd8ff'],
 };
 const PET_LINES = {
-  happy: [['Labas, Olegai! Statom toliau?', 'Привіт! Будуємо далі?'], ['Viena lenta per dieną – ir būsime kitame krante!', 'Одна дошка на день — і ми на тому березі!'], ['Šiandien išmoksim kažką naujo.', 'Сьогодні вивчимо щось нове.']],
+  happy: [['Labas{, name}! Statom toliau?', 'Привіт! Будуємо далі?'], ['Viena lenta per dieną – ir būsime kitame krante!', 'Одна дошка на день — і ми на тому березі!'], ['Šiandien išmoksim kažką naujo.', 'Сьогодні вивчимо щось нове.']],
   sad:   [['Pasiilgau tavęs… Grįžk, statykim tiltą!', 'Я скучив… Повертайся, будуймо міст!'], ['Be tavęs tiltas nestatomas…', 'Без тебе міст не будується…']],
   angry: [['Grrr! Klaidos! Bet nieko – pataisysim.', 'Гррр! Помилки! Але нічого — виправимо.']],
   proud: [['Šaunu! Šiandien tiltas paaugo!', 'Чудово! Сьогодні міст підріс!'], ['Puiku! Tu – tikras statybininkas!', 'Супер! Ти справжній будівельник!']],
@@ -96,7 +96,9 @@ let petTaps = 0;
 function petLine(mood) {
   const { total, built } = bridgeState();
   const list = built >= total ? PET_LINES.done : (PET_LINES[mood] || PET_LINES[moodBase(mood)] || PET_LINES.happy);
-  return list[(new Date().getDate() + built + petTaps) % list.length];
+  const [lt, ua] = list[(new Date().getDate() + built + petTaps) % list.length];
+  const nm = typeof vocName === 'function' ? vocName() : '';
+  return [lt.replace('{, name}', nm ? ', ' + nm : ''), ua];
 }
 
 /* Міст */

@@ -833,6 +833,20 @@ input[type="date"].ob-in::-webkit-date-and-time-value { text-align: center; }
 .ob-in:disabled { opacity: .45; }
 .unk-btn { border: 2px solid rgba(255,255,255,.55); background: transparent; color: #fff; font: 600 .95rem var(--f-body); padding: 9px 18px; border-radius: 22px; cursor: pointer; }
 .unk-btn.on { background: #fff; color: #0e3a96; border-color: #fff; }
+
+/* ===== «Не знаю» в тестах ===== */
+.skipq { display: block; margin: 14px auto 0; border: 0; background: none; color: var(--muted); font: 600 .95rem var(--f-body); padding: 8px 12px; border-radius: 14px; cursor: pointer; }
+.skipq:hover { background: var(--sky); color: var(--blue); }
+.qback { margin: 0 0 6px; font-size: .85rem; font-weight: 700; color: var(--blue); }
+.wrongs.skipped li { border-left: 4px solid #ffc36b; }
+
+/* ===== Переклад на дотик ===== */
+.ltext, .qq, .tbl td, .cases .lt, .theory .lt, .ctx { cursor: help; }
+.wpop { display: flex; flex-direction: column; gap: 10px; }
+.wp-head { display: flex; align-items: center; gap: 12px; }
+.wp-head b { font: 800 1.8rem var(--f-display); }
+.wp-tr { margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--blue-2); }
+.wp-ok { margin: 4px 0; font-weight: 700; color: var(--good); }
 </style>
 </head>
 <body>
@@ -852,6 +866,7 @@ input[type="date"].ob-in::-webkit-date-and-time-value { text-align: center; }
   <div id="toast" role="status" aria-live="polite"></div>
 </div>
 <script src="lang.js"></script>
+<script src="dict.js"></script>
 <script src="konst.js"></script>
 <script src="exams.js"></script>
 <script src="app.js"></script>
