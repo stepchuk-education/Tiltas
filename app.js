@@ -116,13 +116,13 @@ function nextKSec() {
   const sorted = KSECTIONS.filter(s => S.ksec[s.id]?.read).sort((a,b) => (ksecM(a.id) ?? 0) - (ksecM(b.id) ?? 0));
   return sorted[0] || KSECTIONS[0];
 }
-const SKILL_ROT = ['read','write','listen','speak','read','role','weekly'];
+const SKILL_ROT = ['read','write','listen','speak','read','cards','weekly'];
 const SKILL_META = {
   read:  { t:'Читання', i:'read', min:10 },
   write: { t:'Письмо', i:'pen', min:15 },
   listen:{ t:'Аудіювання', i:'ear', min:10 },
   speak: { t:'Говоріння', i:'mic', min:10 },
-  role:  { t:'Розмова', i:'chat', min:10 },
+  cards: { t:'Картки', i:'dict', min:10 },
 };
 function todayPlan() {
   const tasks = [];
@@ -142,11 +142,14 @@ function todayPlan() {
   if (special) {
     if (special.min >= 40) { const gi = tasks.findIndex(t => t.key === 'gram'); if (gi >= 0) tasks.splice(gi, 1); }
     tasks.push(special);
+  } else if (kind === 'cards') {
+    const d = nextDeck();
+    tasks.push({ key:'skill', icon:'dict', title:'Картки: ' + d.title, sub:'Нові слова й повторення', min:10, act:'deck:' + d.id });
   } else if (kind === 'weekly') {
     tasks.push({ key:'skill', icon:'target', title:'Підсумок тижня ' + w, sub:'Коротка перевірка граматики й Конституції за тиждень', min:10, act:'weekly' });
   } else {
-    const list = {read:READING, write:WRITING, listen:LISTENING, speak:SPEAKING, role:ROLEPLAYS}[kind];
-    const store = {read:S.read, write:S.write, listen:S.listen, speak:S.speak, role:S.role}[kind];
+    const list = {read:READING, write:WRITING, listen:LISTENING, speak:SPEAKING}[kind];
+    const store = {read:S.read, write:S.write, listen:S.listen, speak:S.speak}[kind];
     const it = nextOf(list, store);
     const m = SKILL_META[kind];
     tasks.push({ key:'skill', icon:m.i, title:m.t + ': ' + (it.title || it.q), sub: it.ua || '', min:m.min, act:kind+':'+it.id });
@@ -175,6 +178,7 @@ function dueItems() {
 function srsResolve(id) {
   const [k, a, b] = id.split('|');
   if (k === 'w') { const w = S.words.find(x => x.lt === a); return w ? { k, w } : null; }
+  if (k === 'c') { const d = typeof deckById === 'function' && deckById(a); const c = d && d.cards[+b]; return c ? { k, d, c } : null; }
   if (k === 'r') { const r = RULES.find(x => x.id === a); return r ? { k, r } : null; }
   if (k === 'n' || k === 'q') { const s = KSECTIONS.find(x => x.id === a); if (!s) return null; const it = (k === 'n' ? s.nums : s.q)[+b]; return it ? { k, s, it, i:+b } : null; }
   return null;
@@ -185,7 +189,8 @@ async function initCaps() {
   if (!window.claude || !claude.use) return;
   const safe = p => p.catch(() => null);
   const [db, user, sample, tts, dict, dl] = await Promise.all(['db','user','sample','tts','dictation','downloads'].map(n => safe(claude.use(n))));
-  cap.sample = sample; cap.tts = tts; cap.dict = dict; cap.dl = dl;
+  /* ШІ-перевірки вимкнено: застосунок вчить за шпаргалками, зразками й тестами. */
+  cap.sample = null; cap.tts = tts; cap.dict = dict; cap.dl = dl;
   if (dict) {
     dict.onFinal(({text}) => { if (dictTarget) { dictTarget.value = (dictTarget.value ? dictTarget.value.replace(/\s+$/,'') + ' ' : '') + text; dictTarget.dispatchEvent(new Event('input')); } });
     dict.onState(({state}) => { dictOn = state === 'listening'; document.querySelectorAll('[data-act="mic"]').forEach(b => b.classList.toggle('on', dictOn)); });
@@ -281,7 +286,7 @@ const topSheet = () => sheetStack[sheetStack.length - 1]?.querySelector('.sheet-
 
 /* ===================== Рендер вкладок ===================== */
 const TABS = [
-  ['today','Сьогодні','home'], ['mova','Мова','lang'], ['konst','Конституція','konst'], ['klaidos','Помилки','target'], ['zodynas','Словник','dict'], ['progresas','Прогрес','chart']
+  ['today','Сьогодні','home'], ['mova','Мова','lang'], ['konst','Конституція','konst'], ['klaidos','Помилки','target'], ['zodynas','Картки','dict'], ['progresas','Прогрес','chart']
 ];
 let tab = 'today', langSeg = 'gram', dictQuery = '';
 function readHash() { const h = location.hash.replace('#',''); if (TABS.some(t => t[0] === h)) tab = h; }
@@ -289,12 +294,11 @@ function readHash() { const h = location.hash.replace('#',''); if (TABS.some(t =
 function render() {
   $('#main').classList.toggle('onbm', !S.onboarded);
   $('#device').classList.toggle('lav', !S.onboarded || tab === 'today');
-  if (!S.onboarded) { $('#main').innerHTML = viewOnboard(); $('#nav').innerHTML = ''; $('#top').innerHTML = ''; $('#tutor').hidden = true; mountRig(); return; }
-  $('#tutor').hidden = false;
+  if (!S.onboarded) { $('#main').innerHTML = viewOnboard(); $('#nav').innerHTML = ''; $('#top').innerHTML = ''; mountRig(); return; }
   $('#top').innerHTML = topBar();
   const openN = typeof openMistakes === 'function' ? openMistakes().length : 0;
   $('#nav').innerHTML = TABS.map(([id, t, i]) => `<a href="#${id}" class="${tab === id ? 'on' : ''}" data-tab="${id}">${ic(i)}<span>${t}</span>${id === 'klaidos' && openN ? `<em class="badge">${openN}</em>` : ''}</a>`).join('');
-  const v = { today:viewToday, mova:viewLang, konst:viewKonst, klaidos:viewMist, zodynas:viewDict, progresas:viewProg }[tab];
+  const v = { today:viewToday, mova:viewLang, konst:viewKonst, klaidos:viewMist, zodynas:viewCards, progresas:viewProg }[tab];
   $('#main').innerHTML = v();
   mountRig();
   if (tab === 'zodynas') { const i = $('#dq'); if (i && dictQuery) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
@@ -421,13 +425,17 @@ function viewLang() {
       <div class="list">${list.map(x => { const s = store[x.id]; const sc = s === undefined ? null : (typeof s === 'object' ? s.score : s);
         return `<button class="row" data-act="${kind}:${x.id}"><span class="rowt"><b>${esc(x.title || x.q)}</b><small>${esc(x.ua || '')}</small></span><span class="pill ${sc === null ? 'new' : sc >= 80 || (kind==='write' && sc >= 7) ? 'good' : 'mid'}">${sc === null ? 'тиждень ' + (x.week||1) : label(sc)}</span></button>`; }).join('')}</div>`;
     body = `
-      <p class="muted">Іспит з мови має три частини: читання й письмо, аудіювання (електронно) та розмову з екзаменатором. Повна симуляція — у розділі «Іспит».</p>
+      <section class="card guides"><h2>${ic('read')} Шпаргалки</h2>
+        <div class="glist"><button class="row" data-act="guide:write"><span class="rowt"><b>Як написати лист</b><small>5 кроків і готові фрази</small></span></button>
+        <button class="row" data-act="guide:link"><span class="rowt"><b>Сполучні слова</b><small class="lt">ir, bet, nes, todėl, kai…</small></span></button>
+        <button class="row" data-act="guide:speak"><span class="rowt"><b>Як відповідати усно</b><small>формула 1‑2‑3</small></span></button></div>
+      </section>
       ${cap.sample ? `<div class="grid2"><button class="card action" data-act="ai-read">${ic('read')}<b>Новий текст</b><small>ШІ складе текст і питання на тему тижня</small></button><button class="card action" data-act="ai-listen">${ic('ear')}<b>Новий запис</b><small>ШІ складе оголошення чи діалог</small></button></div>` : ''}
       ${block('Читання','read','Оголошення, графіки, листи. Шукаємо час, ціну, адресу.', READING, S.read, 'read', s => s + '%')}
       ${block('Аудіювання','ear','Телефонні повідомлення, оголошення, діалоги. Числа й дати на слух.', LISTENING, S.listen, 'listen', s => s + '%')}
-      ${block('Письмо','pen','Анкета й короткий лист 50–80 слів. Виконати всі пункти завдання.', WRITING, S.write, 'write', s => s + '/10')}
-      ${block('Говоріння','mic','Питання екзаменатора про вас. Відповідайте 2–3 реченнями.', SPEAKING, S.speak, 'speak', s => 'тренувано')}
-      ${block('Розмова з ШІ','chat','Живий діалог у побутовій ситуації: ШІ грає роль і виправляє помилки.', ROLEPLAYS, S.role, 'role', s => s + ' ' + plural(s,'раз','рази','разів'))}
+      ${block('Письмо','pen','Шпаргалка, зразок і тест до кожного завдання.', WRITING, S.write, 'write', s => s + '/10')}
+      ${block('Говоріння','mic','Питання екзаменатора: зразок відповіді й тест.', SPEAKING, S.speak, 'speak', s => 'тренувано')}
+
       <section class="card"><h2>Рятівні фрази</h2><p class="muted">На іспиті їх не вважають помилкою: це частина навички спілкування.</p>
       <ul class="phr">${RESCUE.map(p => `<li><button class="iconbtn sm" data-act="say" data-text="${esc(p[0])}" aria-label="Озвучити">${ic('speaker')}</button><span><b class="lt">${esc(p[0])}</b><small>${esc(p[1])}</small></span></li>`).join('')}</ul></section>`;
   } else {
@@ -460,30 +468,6 @@ function viewKonst() {
 }
 
 /* ----- Словник ----- */
-function viewDict() {
-  const q = dictQuery.trim().toLowerCase();
-  const list = S.words.slice().reverse().filter(w => !q || w.lt.toLowerCase().includes(q) || (w.ua || '').toLowerCase().includes(q));
-  return `<h1 class="pageh">Мій словник</h1>
-  <section class="card">
-    <h2>Додати слово</h2>
-    <div class="addw">
-      <label class="fld"><span>Литовською</span><input id="nw-lt" class="ltin" autocomplete="off" placeholder="pvz. sąskaita"></label>
-      ${ltBar('nw-lt')}
-      <label class="fld"><span>Українською</span><input id="nw-ua" autocomplete="off" placeholder="рахунок"></label>
-      <label class="fld"><span>Приклад або примітка (необов’язково)</span><input id="nw-ex" autocomplete="off" placeholder="Sąskaitą, prašau."></label>
-      <div class="btnrow"><button class="btn primary" data-act="addword">${ic('plus')} Додати</button>${cap.sample ? `<button class="btn ghost" data-act="ai-word">${ic('spark')} Підказати переклад</button>` : ''}</div>
-    </div>
-  </section>
-  <div class="btnrow"><button class="btn" data-act="review-words" ${S.words.length ? '' : 'disabled'}>${ic('repeat')} Тренувати слова</button></div>
-  <label class="fld search"><span class="sr">Пошук</span><input id="dq" value="${esc(dictQuery)}" placeholder="Пошук у словнику" autocomplete="off"></label>
-  ${list.length ? `<ul class="words">${list.map(w => { const s = S.srs['w|' + w.lt];
-    return `<li><button class="iconbtn sm" data-act="say" data-text="${esc(w.lt)}" aria-label="Озвучити">${ic('speaker')}</button>
-    <span class="wbody"><b class="lt">${esc(w.lt)}</b><span>${esc(w.ua)}</span>${w.ex ? `<small>${esc(w.ex)}</small>` : ''}</span>
-    <span class="box" title="Рівень запам’ятовування">${'●'.repeat(s ? s.b : 0)}${'○'.repeat(6 - (s ? s.b : 0))}</span>
-    <button class="iconbtn sm" data-act="delword" data-lt="${esc(w.lt)}" aria-label="Видалити">${ic('x')}</button></li>`; }).join('')}</ul>`
-    : `<p class="empty">${q ? 'Нічого не знайдено.' : 'Тут з’являтимуться незнайомі слова. Додавай їх з текстів, тем і з порад ШІ — вони автоматично потраплять у щоденне повторення.'}</p>`}`;
-}
-
 /* ----- Прогрес ----- */
 function viewProg() {
   const total = diffDays(S.start, S.exam) + 1;
@@ -711,8 +695,6 @@ function openRule(id, fromTask) {
   const r = RULES.find(x => x.id === id); if (!r) return;
   const m = ruleM(id);
   const b = openSheet(`${ruleTheoryHtml(r)}
-    ${cap.sample ? `<button class="btn ghost" data-act="ai-ex:${id}">${ic('spark')} Ще 6 нових вправ від ШІ</button>` : `<button class="btn ghost" data-act="ex-chat:${id}">${ic('spark')} Нові вправи від ШІ (через чат)</button>`}
-    <button class="btn ghost" data-act="tutor-ask" data-q="${esc('Поясни простіше правило «' + r.ua + '» і дай 3 приклади з мого життя (робота, дім, магазин).')}">${ic('chat')} Запитати викладача про це правило</button>
     <div class="sticky-cta"><button class="btn primary big" data-act="rule-practice:${id}" data-task="${fromTask ? 'gram' : ''}">Практика: ${r.ex.length} завдань${m !== null ? ` · зараз ${m}%` : ''}</button></div>`, { title:'Граматика' });
   b.scrollTop = 0;
 }
@@ -750,6 +732,7 @@ function startReview(onlyWords) {
     const r = srsResolve(id);
     if (r.k === 'w') return { type:'flash', srs:id, tag:'Слово', front:`<b class="lt big">${esc(r.w.lt)}</b>`, say:r.w.lt, back:`<b>${esc(r.w.ua)}</b>${r.w.ex ? `<small class="lt">${esc(r.w.ex)}</small>` : ''}` };
     if (r.k === 'r') { const e = pick(r.r.ex); const it = ruleItems(r.r, [e])[0]; it.srs = id; it.ex = `<b>Правило:</b> ${esc(r.r.summary)}<br>${e.ex}`; return it; }
+    if (r.k === 'c') return { type:'flash', srs:id, tag:'Картка · ' + r.d.title, front:`<b class="${r.d.ua ? '' : 'lt '}big">${esc(r.c.f)}</b>`, say:r.d.ua ? '' : r.c.f.replace(/…/g, ''), back:`<b>${esc(r.c.b)}</b>${r.c.ex ? `<small class="lt">${esc(r.c.ex)}</small>` : ''}` };
     if (r.k === 'n') return { type:'flash', srs:id, tag:'Конституція · ' + r.s.ua, front:`Яке число? <b>${esc(r.it[1])}</b>`, back:`<b class="big">${esc(r.it[0])}</b>` };
     if (r.k === 'q') return { type:'choice', srs:id, tag:'Конституція · ' + r.s.ua, q:r.it.q, o:r.it.o, ex:r.it.ex + (r.it.art ? ` <span class="art">${r.it.art} str.</span>` : '') };
   });
@@ -803,53 +786,6 @@ function listeningQuiz(id) {
 }
 
 /* ----- Письмо ----- */
-function openWriting(id) {
-  const w = WRITING.find(x => x.id === id);
-  const prev = S.write[id];
-  const form = w.kind === 'anketa'
-    ? `<div class="anketa">${w.fields.map((f, i) => `<label class="fld"><span class="lt">${esc(f)}</span>${i === w.fields.length - 1 ? `<textarea id="af${i}" class="ltin" rows="3"></textarea>` : `<input id="af${i}" class="ltin" autocomplete="off">`}</label>`).join('')}</div>`
-    : `<label class="fld"><span>Ваш текст</span><textarea id="wtext" class="ltin" rows="9" placeholder="Labas, …">${esc(prev?.text || '')}</textarea></label><p class="wc" id="wc">0 слів</p>`;
-  openSheet(`<p class="eyebrow">Письмо · ${esc(w.ua)}</p><h1 class="lt">${esc(w.title)}</h1>
-    <div class="taskbox lt">${esc(w.task)}</div>
-    ${w.points ? `<p class="small"><b>Обов’язково згадайте:</b></p><ul class="points">${w.points.map(p => `<li class="lt">${esc(p)}</li>`).join('')}</ul>` : ''}
-    <details><summary>Корисні фрази</summary><ul class="phr2">${w.phrases.map(p => `<li class="lt">${esc(p)}</li>`).join('')}</ul></details>
-    ${w.kind !== 'anketa' ? `<details><summary>План листа</summary><ol class="small"><li>Привітання: <span class="lt">Labas, …! / Laba diena,</span></li><li>Вступ: <span class="lt">Ačiū už laišką. / Rašau, nes…</span></li><li>Головне: усі пункти завдання, 3–5 речень зі сполучниками <span class="lt">nes, todėl, bet, kai</span></li><li>Питання або прохання: <span class="lt">Parašyk, ar…</span></li><li>Прощання: <span class="lt">Iki greito! / Su pagarba,</span></li></ol></details>` : ''}
-    ${form}${ltBar(w.kind === 'anketa' ? 'af0' : 'wtext')}${w.kind !== 'anketa' ? micBtn('wtext') : ''}
-    <div id="wfb"></div>
-    <div class="btnrow">${cap.sample ? `<button class="btn primary big" data-act="w-ai:${id}">${ic('spark')} Перевірити з ШІ-викладачем</button>` : `<button class="btn primary big" data-act="w-chat:${id}">${ic('spark')} Перевірити з ШІ через чат</button>`}<button class="btn ghost" data-act="w-self:${id}">Самоперевірка і зразок</button></div>`, { title:'Письмо' });
-  const t = $('#wtext'); if (t) { const upd = () => { const n = t.value.trim() ? t.value.trim().split(/\s+/).length : 0; $('#wc').textContent = `${n} ${plural(n,'слово','слова','слів')}`; }; t.addEventListener('input', upd); upd(); }
-  topSheet().addEventListener('focusin', e => { if (e.target.matches('.ltin')) topSheet().querySelectorAll('.ltbar button').forEach(b => b.dataset.target = e.target.id); });
-}
-function writingText(w) {
-  if (w.kind === 'anketa') return w.fields.map((f, i) => `${f}: ${($('#af' + i)?.value || '').trim()}`).join('\n');
-  return ($('#wtext')?.value || '').trim();
-}
-async function writingAI(id) {
-  const w = WRITING.find(x => x.id === id), text = writingText(w);
-  if (text.replace(/[^a-ząčęėįšųūž]/gi, '').length < 15) { toast('Спершу напишіть текст.'); return; }
-  const fb = $('#wfb'); fb.innerHTML = `<div class="loading">${ic('spark')} Викладач читає ваш текст…</div>`;
-  const prompt = `Ти — доброзичливий, але вимогливий викладач литовської мови й екзаменатор державного іспиту NŠA (I категорія = рівень A2). Учень — україномовний чоловік 46 років, словниковий запас хороший, слабке місце — граматика.
-Завдання (литовською): ${w.task}
-${w.points ? 'Обов’язкові пункти: ' + w.points.join('; ') : 'Це анкета: перевір правильність заповнення полів і речення в останньому полі.'}
-Текст учня:
-"""${text}"""
-Оціни за критеріями письма A2: виконання завдання (усі пункти), зв’язність (сполучники nes, todėl, bet, kai…), граматика, лексика, обсяг.
-Відповідай ТІЛЬКИ JSON без markdown:
-{"score": ціле 0-10, "verdict": "одне речення українською", "points":[{"point":"пункт","done":true}], "errors":[{"wrong":"фрагмент з тексту учня","right":"виправлено литовською","why":"коротке пояснення українською з литовським терміном (напр. galininkas)","rule":"один id з переліку або other"}], "good":["що вдалося, українською"], "tips":["2-3 конкретні поради українською"], "improved":"виправлений текст литовською, максимально близький до тексту учня", "words":[["литовське слово з виправлень, корисне вивчити","переклад"]]}
-Перелік id правил: ${RULE_IDS()}.
-Не вигадуй помилок. Якщо помилок немає — порожній масив. Максимум 8 помилок, найважливіші.`;
-  try {
-    const r = await askAI(prompt);
-    const errs = r.errors || [];
-    errs.forEach(e => { if (e.rule && RULES.some(x => x.id === e.rule)) { pushHist(S.rules, e.rule, 0); srsAdd('r|' + e.rule); srsGrade('r|' + e.rule, false); } });
-    errs.forEach(e => logFrag(e, 'Письмо: ' + w.title));
-    S.write[id] = { score: r.score, text, date: todayStr() };
-    markDone('skill', 15);
-    fb.innerHTML = aiReport(r, true);
-  } catch(e) {
-    fb.innerHTML = `<div class="fbbox no"><b>Не вдалося отримати перевірку.</b><p>${e.code === 'rate_limited' ? 'Забагато запитів — спробуйте за хвилину.' : 'Скористайтеся самоперевіркою нижче або спробуйте ще раз.'}</p></div>`;
-  }
-}
 function aiReport(r, writing) {
   const errs = r.errors || [];
   return `<div class="aibox">
@@ -862,111 +798,6 @@ function aiReport(r, writing) {
     ${r.improved || r.better ? `<h3>${writing ? 'Виправлений текст' : 'Як сказати краще'}</h3><div class="ltext lt">${esc(r.improved || r.better).replace(/\n/g,'<br>')}</div><button class="btn ghost" data-act="say" data-text="${esc(r.improved || r.better)}">${ic('speaker')} Послухати</button>` : ''}
     ${r.words && r.words.length ? `<h3>Слова, які варто вивчити</h3>${glossHtml(r.words.filter(w => Array.isArray(w) && w[0]))}` : ''}
   </div>`;
-}
-function writingSelf(id) {
-  const w = WRITING.find(x => x.id === id), text = writingText(w);
-  const n = text.trim() ? text.trim().split(/\s+/).length : 0;
-  const conj = ['nes','todėl','bet','kai','jeigu','jei','kad','ir','o'].filter(c => new RegExp('(^|[^a-ząčęėįšųūž])' + c + '([^a-ząčęėįšųūž]|$)', 'i').test(text));
-  $('#wfb').innerHTML = `<div class="aibox"><h3>Перевірте себе</h3>
-    <ul class="checks">
-      ${w.points ? w.points.map((p, i) => `<li><label><input type="checkbox" class="selfchk"> <span class="lt">${esc(p)}</span></label></li>`).join('') : ''}
-      <li><label><input type="checkbox" class="selfchk"> Є привітання і прощання</label></li>
-      <li><label><input type="checkbox" class="selfchk"> Дієслова в правильному часі (вчора — минулий, завтра — майбутній)</label></li>
-      <li><label><input type="checkbox" class="selfchk"> Після «nėra / neturiu» — родовий відмінок</label></li>
-    </ul>
-    <p class="small">Слів: <b>${n}</b>. Сполучники у тексті: <b>${conj.length ? conj.join(', ') : 'не знайдено'}</b>${conj.length < 3 ? ' — додайте ще кілька (nes, todėl, bet).' : '.'}</p>
-    <h3>Зразок відповіді</h3><div class="ltext lt">${esc(w.model).replace(/\n/g,'<br>')}</div>
-    <button class="btn" data-act="w-selfdone:${id}">${ic('check')} Зарахувати</button></div>`;
-}
-
-/* ----- Говоріння ----- */
-function openSpeaking(id) {
-  const s = SPEAKING.find(x => x.id === id);
-  openSheet(`<p class="eyebrow">Говоріння · питання екзаменатора</p>
-    <div class="speakq"><button class="iconbtn lg" data-act="say" data-text="${esc(s.q)}" aria-label="Послухати питання">${ic('speaker')}</button><div><h1 class="lt">${esc(s.q)}</h1><p class="muted">${esc(s.ua)}</p></div></div>
-    <ol class="steps small"><li>Послухайте питання.</li><li>Скажіть відповідь <b>уголос</b> 2–3 реченнями.</li><li>${cap.dict ? 'Натисніть «Сказати голосом» — або напишіть те, що сказали.' : 'Запишіть те, що сказали, щоб перевірити.'}</li></ol>
-    <label class="fld"><span>Ваша відповідь</span><textarea id="stext" class="ltin" rows="4"></textarea></label>
-    ${ltBar('stext')}${micBtn('stext')}
-    <details><summary>Підказка: відповідь-шаблон</summary><div class="ltext lt">${esc(s.a)}</div><button class="btn ghost" data-act="say" data-text="${esc(s.a.replace(/[\[\]]/g,''))}">${ic('speaker')} Послухати</button><p class="fine">Підставте свої дані замість [дужок] і повторіть 3 рази без пауз.</p></details>
-    <div id="sfb"></div>
-    <div class="btnrow">${cap.sample ? `<button class="btn primary big" data-act="s-ai:${id}">${ic('spark')} Перевірити відповідь</button>` : `<button class="btn primary big" data-act="s-chat:${id}">${ic('spark')} Перевірити з ШІ через чат</button>`}<button class="btn ghost" data-act="s-done:${id}">${ic('check')} Я сказав уголос</button></div>`, { title:'Говоріння' });
-}
-async function speakingAI(id) {
-  const s = SPEAKING.find(x => x.id === id), text = ($('#stext')?.value || '').trim();
-  if (text.length < 5) { toast('Скажіть або напишіть відповідь.'); return; }
-  const fb = $('#sfb'); fb.innerHTML = `<div class="loading">${ic('spark')} Слухаю…</div>`;
-  const prompt = `Ти — екзаменатор усної частини іспиту з литовської мови NŠA (рівень A2) і доброзичливий викладач. Учень — україномовний чоловік 46 років.
-Питання екзаменатора: "${s.q}"
-Відповідь учня (могла бути отримана з розпізнавання мовлення — ігноруй пунктуацію та великі літери): """${text}"""
-Оціни: чи відповів по суті, чи достатньо розгорнуто (2–3 речення), граматика, лексика.
-Відповідай ТІЛЬКИ JSON без markdown:
-{"score": ціле 0-10, "verdict":"одне речення українською", "errors":[{"wrong":"...","right":"...","why":"українською","rule":"id з переліку або other"}], "tips":["1-2 поради українською: що додати, щоб відповідь була повнішою"], "better":"покращена відповідь литовською рівня A2, 2-4 речення, на основі відповіді учня", "words":[["корисне литовське слово","переклад"]]}
-Перелік id правил: ${RULE_IDS()}.`;
-  try {
-    const r = await askAI(prompt);
-    (r.errors || []).forEach(e => { if (RULES.some(x => x.id === e.rule)) { pushHist(S.rules, e.rule, 0); srsAdd('r|' + e.rule); srsGrade('r|' + e.rule, false); } });
-    (r.errors || []).forEach(e => logFrag(e, 'Говоріння: ' + s.q));
-    S.speak[id] = (S.speak[id] || 0) + 1; markDone('skill', 10);
-    fb.innerHTML = aiReport(r, false);
-  } catch(e) { fb.innerHTML = `<div class="fbbox no"><b>Не вдалося перевірити.</b><p>Спробуйте ще раз трохи згодом.</p></div>`; }
-}
-
-/* ----- Рольова гра ----- */
-let RP = null;
-function openRole(id) {
-  const p = ROLEPLAYS.find(x => x.id === id);
-  RP = { p, hist:[{ who:'ai', lt:p.start, ua:'' }], fixes:[], busy:false };
-  const noAI = !cap.sample;
-  openSheet(`<p class="eyebrow">Розмова · ${esc(p.ua)}</p><h1 class="lt">${esc(p.title)}</h1>
-    <div class="taskbox"><b>Ваша мета:</b> ${esc(p.goal)}</div>
-    ${noAI ? `<button class="btn primary big" data-act="role-chat:${id}">${ic('chat')} Розмовляти з ШІ в чаті</button>
-      <p class="muted small">ШІ зіграє роль у вашому безкоштовному чаті й виправлятиме помилки. Або відпрацюйте діалог уголос самостійно:</p>
-      <div class="chat"><div class="msg ai"><b class="lt">${esc(p.start)}</b></div></div>
-      <ul class="phr">${RESCUE.map(x => `<li><span><b class="lt">${esc(x[0])}</b><small>${esc(x[1])}</small></span></li>`).join('')}</ul>
-      <button class="btn primary big" data-act="role-end">Готово</button>`
-    : `<div class="chat" id="chat"></div>
-      <div class="composer"><textarea id="rpin" class="ltin" rows="2" placeholder="Ваша відповідь литовською"></textarea>${ltBar('rpin')}
-      <div class="btnrow">${micBtn('rpin')}<button class="btn primary" data-act="role-send">Надіслати</button><button class="btn ghost" data-act="role-end">Завершити</button></div></div>`}`, { title:'Розмова' });
-  if (!noAI) { renderChat(); say(p.start); const t = $('#rpin'); t.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); roleSend(); } }); }
-}
-function renderChat() {
-  const c = $('#chat'); if (!c) return;
-  c.innerHTML = RP.hist.map(m => m.who === 'ai'
-    ? `<div class="msg ai"><button class="iconbtn sm" data-act="say" data-text="${esc(m.lt)}" aria-label="Озвучити">${ic('speaker')}</button><div><b class="lt">${esc(m.lt)}</b>${m.ua ? `<details><summary>переклад</summary><small>${esc(m.ua)}</small></details>` : ''}</div></div>`
-    : `<div class="msg me"><div><span class="lt">${esc(m.lt)}</span>${m.fix ? `<div class="fix">${ic('pen')}<span>${esc(m.fix)}${m.better ? `<br><b class="lt">${esc(m.better)}</b>` : ''}</span></div>` : m.checked ? `<div class="fix ok">${ic('check')}<span>Без помилок</span></div>` : ''}</div></div>`).join('') + (RP.busy ? '<div class="msg ai typing"><i></i><i></i><i></i></div>' : '');
-  c.scrollTop = c.scrollHeight;
-  topSheet().scrollTop = topSheet().scrollHeight;
-}
-async function roleSend() {
-  const inp = $('#rpin'); const msg = inp.value.trim(); if (!msg || RP.busy) return;
-  inp.value = ''; RP.hist.push({ who:'me', lt:msg }); RP.busy = true; renderChat();
-  const p = RP.p;
-  const transcript = RP.hist.map(m => (m.who === 'ai' ? 'Ти: ' : 'Учень: ') + m.lt).join('\n');
-  const prompt = `Ти граєш роль: ${p.role}. Це розмовна практика литовської мови рівня A2 для україномовного чоловіка 46 років. Говори ТІЛЬКИ простою литовською рівня A2: 1–2 короткі речення, природно, як у реальному житті в Литві. Мета учня: ${p.goal}
-Розмова досі:
-${transcript}
-Відповідай ТІЛЬКИ JSON без markdown:
-{"reply":"твоя наступна репліка литовською","reply_ua":"переклад репліки українською","fix":"якщо в ОСТАННІЙ репліці учня є граматична чи лексична помилка — коротко українською, що не так; інакше порожній рядок","better":"як правильно або природніше сказати останню репліку учня литовською; порожньо, якщо все добре","rule":"id правила з переліку або порожньо","done":true або false — чи досягнута мета розмови}
-Перелік id правил: ${RULE_IDS()}.`;
-  try {
-    const r = await askAI(prompt);
-    const me = RP.hist[RP.hist.length - 1];
-    me.checked = true; if (r.fix) { me.fix = r.fix; me.better = r.better; RP.fixes.push({ wrong:msg, fix:r.fix, better:r.better, rule:r.rule }); if (r.better) logFrag({ wrong:msg, right:r.better, why:r.fix, rule:r.rule }, 'Розмова: ' + p.title); if (RULES.some(x => x.id === r.rule)) { pushHist(S.rules, r.rule, 0); srsAdd('r|' + r.rule); } }
-    RP.hist.push({ who:'ai', lt:r.reply || '…', ua:r.reply_ua || '' });
-    RP.busy = false; renderChat(); if (r.reply) say(r.reply);
-    if (r.done) { const c = $('#chat'); c.insertAdjacentHTML('beforeend', `<div class="note">${ic('check')}<span>Мету досягнуто! Можна завершити розмову.</span></div>`); }
-  } catch(e) { RP.busy = false; renderChat(); toast('Не вдалося отримати відповідь. Спробуйте ще раз.'); }
-}
-function roleEnd() {
-  if (!RP) { closeSheet(); return; }
-  const turns = RP.hist.filter(m => m.who === 'me').length;
-  if (turns || !cap.sample) { S.role[RP.p.id] = (S.role[RP.p.id] || 0) + 1; markDone('skill', 10); }
-  const fixes = RP.fixes;
-  closeSheet();
-  if (turns) openSheet(`<div class="result"><h2>Розмову завершено</h2><p class="muted">${turns} ${plural(turns,'репліка','репліки','реплік')} · ${fixes.length ? fixes.length + ' ' + plural(fixes.length,'виправлення','виправлення','виправлень') : 'без помилок'}</p>
-    ${fixes.length ? `<ul class="errs">${fixes.map(f => `<li><p><s class="lt">${esc(f.wrong)}</s>${f.better ? ` → <b class="lt">${esc(f.better)}</b>` : ''}</p><small>${esc(f.fix)}</small></li>`).join('')}</ul>` : '<p>Puiku! Спробуйте наступного разу довші відповіді.</p>'}
-    <button class="btn primary big" data-act="close">Готово</button></div>`, { title:'Підсумок' });
-  RP = null;
 }
 
 /* ----- Теми ----- */
@@ -1065,15 +896,6 @@ function addWord(lt, ua, ex) {
   S.words.push({ lt, ua, ex:(ex || '').trim(), d:todayStr() }); srsAdd('w|' + lt); save();
   return true;
 }
-async function aiWord() {
-  const lt = $('#nw-lt').value.trim(); if (!lt) { toast('Спершу впишіть литовське слово.'); return; }
-  const b = document.querySelector('[data-act="ai-word"]'); b.disabled = true; b.lastChild.textContent = ' Шукаю…';
-  try {
-    const r = await askAI(`Литовське слово або вираз: "${lt}". Дай для україномовного учня рівня A2 JSON без markdown: {"ua":"переклад українською (1-3 варіанти)","ex":"коротке просте речення литовською з цим словом","note":"граматична примітка українською: рід, основні форми (для дієслова — три форми, для іменника — родовий), до 12 слів"}`);
-    $('#nw-ua').value = r.ua || ''; $('#nw-ex').value = [r.ex, r.note].filter(Boolean).join(' — ');
-  } catch(e) { toast('Не вдалося отримати переклад.'); }
-  b.disabled = false; b.lastChild.textContent = ' Підказати переклад';
-}
 
 /* ----- Нагадування (.ics) ----- */
 function buildIcs() {
@@ -1134,15 +956,7 @@ document.addEventListener('click', async e => {
     case 'play': { const l = LISTENING.find(x => x.id === arg); say(l.lines, { dialog: l.lines.length > 1 }); break; }
     case 'play-slow': { const l = LISTENING.find(x => x.id === arg); say(l.lines, { dialog: l.lines.length > 1, rate:0.75 }); break; }
     case 'write': openWriting(arg); break;
-    case 'w-ai': writingAI(arg); break;
-    case 'w-self': writingSelf(arg); break;
-    case 'w-selfdone': { const w = WRITING.find(x => x.id === arg); const n = document.querySelectorAll('.selfchk').length, c = document.querySelectorAll('.selfchk:checked').length; S.write[arg] = { score: Math.round(10 * c / Math.max(1, n)), text: writingText(w), date: todayStr(), self:true }; markDone('skill', 15); toast('Зараховано. Наступного разу спробуйте перевірку з ШІ.'); closeSheet(); break; }
     case 'speak': openSpeaking(arg); break;
-    case 's-ai': speakingAI(arg); break;
-    case 's-done': S.speak[arg] = (S.speak[arg] || 0) + 1; markDone('skill', 10); toast('Šaunu! Зараховано.'); closeSheet(); break;
-    case 'role': openRole(arg); break;
-    case 'role-send': roleSend(); break;
-    case 'role-end': roleEnd(); break;
     case 'topic': openTopic(arg); break;
     case 'topic-all': { const tp = TOPICS.find(x => x.id === arg); let n = 0; tp.words.forEach(w => { if (!S.words.some(x => x.lt === w[0])) { S.words.push({ lt:w[0], ua:w[1], ex:'', d:todayStr() }); srsAdd('w|' + w[0]); n++; } }); save(); toast(n ? `Додано ${n} ${plural(n,'слово','слова','слів')}.` : 'Усі слова вже у словнику.'); closeSheet(); openTopic(arg); break; }
     case 'ksec': openKSec(arg, fromTask); break;
@@ -1165,7 +979,6 @@ document.addEventListener('click', async e => {
       cap.dict.start().catch(err => { if (err && err.code === 'not_granted') { cap.dict = null; document.querySelectorAll('[data-act="mic"]').forEach(b => b.remove()); toast('Мікрофон вимкнено — можна писати текстом.'); } });
       break; }
     case 'addword': if (addWord($('#nw-lt').value, $('#nw-ua').value, $('#nw-ex').value)) { toast('Слово додано й потрапить у повторення.'); render(); } break;
-    case 'ai-word': aiWord(); break;
     case 'addgloss': if (addWord(t.dataset.lt, t.dataset.ua, '')) { t.textContent = 'у словнику'; t.disabled = true; t.classList.add('done'); } break;
     case 'delword': S.words = S.words.filter(w => w.lt !== t.dataset.lt); delete S.srs['w|' + t.dataset.lt]; save(); render(); break;
     case 'next-fact': S.factI++; save(); render(); break;

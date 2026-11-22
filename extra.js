@@ -45,7 +45,7 @@ function viewMist() {
       <p class="mq">${esc(plain(m.it.q)).slice(0, 220)}</p>
       <p>Ви: <s class="lt">${esc(m.given ?? '—')}</s> → <b class="lt">${esc(m.right)}</b></p>
       ${m.it.ex ? `<small class="muted">${m.it.ex}</small>` : ''}
-      <div class="btnrow">${r ? `<button class="link" data-act="rule-peek:${r.id}">${ic('read')} ${esc(r.ua)}</button>` : ''}<button class="link" data-act="tutor-ask" data-q="${esc(`Я помилився: написав «${m.given}», а правильно «${m.right}». Поясни чому і дай ще 3 схожі приклади.`)}">${ic('chat')} Чому так?</button><button class="link danger" data-act="mist-del:${m.id}">Прибрати</button></div></li>`; }).join('')}</ul>`
+      <div class="btnrow">${r ? `<button class="link" data-act="rule-peek:${r.id}">${ic('read')} ${esc(r.ua)}</button>` : ''}<button class="link danger" data-act="mist-del:${m.id}">Прибрати</button></div></li>`; }).join('')}</ul>`
     : `<p class="empty">${fixed.length ? 'Усі помилки виправлено. Puiku!' : 'Помилок поки немає. Вони з’являться після перших вправ.'}</p>`}`;
 }
 function startMistPractice() {
@@ -173,7 +173,7 @@ ${anketa}
     } catch (e) { fb.innerHTML = `<div class="fbbox no"><b>Не вдалося перевірити з ШІ.</b><p>Оцініть себе за списком нижче.</p></div>`; }
   }
   fb.innerHTML += `<div class="aibox"><h3>Самоперевірка листа</h3><ul class="checks">${w.letter.points.concat(['привітання і прощання', `обсяг ${w.letter.min}–${w.letter.max} слів`, 'сполучники nes, todėl, bet']).map(p => `<li><label><input type="checkbox" class="exchk"> <span class="lt">${esc(p)}</span></label></li>`).join('')}</ul>
-    <div class="btnrow"><button class="btn primary big" data-act="exam-wchat:${vi}">${ic('spark')} Перевірити з ШІ через чат</button><button class="btn ghost" data-act="exam-wself:${vi}">Зарахувати за самоперевіркою</button></div></div>`;
+    <div class="btnrow"><button class="btn primary big" data-act="exam-wself:${vi}">Зарахувати за самоперевіркою</button></div></div>`;
 }
 function examPartSummary(v) {
   const s = examScore(v);
@@ -213,7 +213,7 @@ function renderSE() {
       <p>Як на іспиті: три частини, 12–14 хвилин. ${cap.sample ? 'Роль екзаменатора виконує ШІ, а в кінці він оцінить кожну частину й покаже помилки.' : 'ШІ тут недоступний, тож говоріть уголос і записуйте відповіді — у кінці буде самоперевірка.'}</p>
       <ol class="parts"><li><b>1 частина · 2–3 хв</b><small>Особисті питання.</small></li><li><b>2 частина · 4–5 хв</b><small>Розповідь на тему: 1 хв підготовки.</small></li><li><b>3 частина · A і B</b><small>Дві ситуації: по 1 хв підготовки і по 2 хв розмови.</small></li></ol>
       <p class="tip">Говоріть уголос${cap.dict ? ' і натискайте «Сказати голосом»' : ', а потім коротко записуйте сказане'}. Відповідайте повними реченнями, 2–3 речення на питання.</p>
-      ${cap.sample ? '<button class="btn primary big" data-act="se-start">Почати</button>' : `<button class="btn primary big" data-act="se-chat:${SE.vi}">${ic('chat')} Пройти розмову з ШІ в чаті</button><button class="btn ghost" data-act="se-start">Потренуватися тут самостійно</button>`}`;
+      <button class="btn primary big" data-act="se-start">Почати</button>`;
   } else if (SE.step === 'p1') {
     h = `<p class="qtag">1 частина · питання ${Math.min(SE.i + 1, sp.p1.length)} з ${sp.p1.length}</p>${seLogHtml('p1')}${seInput('Ваша відповідь литовською', 'se-p1', 'Відповісти')}`;
   } else if (SE.step === 'p2prep') {
@@ -337,95 +337,6 @@ function saveOfficial() {
   else toast('Результат збережено. План на наступні дні враховує його.');
 }
 
-/* ===================== Викладач (чат) ===================== */
-const md = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b class="lt">$1</b>').replace(/\n/g, '<br>');
-function openTutor(prefill, autoSend) {
-  const chips = ['Поясни різницю між nes і todėl', 'Перевір моє речення: ', 'Як сказати литовською «…»?', 'Дай 5 речень на родовий відмінок', 'Що найважливіше повторити перед іспитом?'];
-  openSheet(`${cap.sample ? '' : `<div class="note">${ic('chat')}<span>Напишіть питання — застосунок складе запит, і викладач відповість у вашому безкоштовному чаті з ШІ.</span></div>`}
-    <div class="chat" id="tchat"></div>
-    <div class="chips">${chips.map(c => `<button class="chip" data-act="tutor-chip" data-q="${esc(c)}">${esc(c)}</button>`).join('')}</div>
-    <div class="composer"><textarea id="tin" class="ltin" rows="2" placeholder="Запитайте українською або напишіть речення литовською"></textarea>${ltBar('tin')}
-    <div class="btnrow">${micBtn('tin')}${cap.sample ? '<button class="btn primary" data-act="tutor-send">Надіслати</button>' : '<button class="btn primary" data-act="tutor-chat">Запитати через чат</button>'}${S.chat.length ? '<button class="btn ghost" data-act="tutor-clear">Очистити</button>' : ''}</div></div>`, { title: 'Викладач' });
-  renderTutor();
-  const t = $('#tin');
-  t.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); tutorSend(); } });
-  if (prefill) { t.value = prefill; if (autoSend && cap.sample) tutorSend(); else t.focus(); }
-}
-let tutorBusy = false;
-function renderTutor() {
-  const c = $('#tchat'); if (!c) return;
-  const intro = `<div class="msg ai"><div><span>Labas, Olegai! Я ваш викладач. Питайте про правила, слова, завдання іспиту чи Конституцію. Можна написати речення литовською — я перевірю.</span></div></div>`;
-  c.innerHTML = intro + S.chat.map(m => m.role === 'assistant'
-    ? `<div class="msg ai"><div><span>${md(m.content)}</span>${/\*\*/.test(m.content) ? `<button class="link" data-act="tutor-say" data-text="${esc((m.content.match(/\*\*(.+?)\*\*/g) || []).map(x => x.slice(2, -2)).join('. '))}">${ic('speaker')} Озвучити литовське</button>` : ''}</div></div>`
-    : `<div class="msg me"><div><span>${esc(m.content)}</span></div></div>`).join('') + (tutorBusy ? '<div class="msg ai typing"><i></i><i></i><i></i></div>' : '');
-  const sb = topSheet(); if (sb) sb.scrollTop = sb.scrollHeight;
-}
-async function tutorSend() {
-  const t = $('#tin'); const q = t.value.trim(); if (!q || tutorBusy || !cap.sample) return;
-  t.value = ''; S.chat.push({ role: 'user', content: q }); tutorBusy = true; renderTutor();
-  const weak = weakRules(4).map(r => r.ua).join(', ') || 'ще не визначено';
-  const recent = openMistakes().slice(-5).map(m => `«${m.given}» → «${m.right}»`).join('; ') || 'немає';
-  const hist = S.chat.slice(-12, -1).map(m => (m.role === 'user' ? 'Учень: ' : 'Викладач: ') + m.content).join('\n');
-  const prompt = `Ти — терплячий персональний викладач литовської мови й підготовки до іспитів NŠA (державна мова, I категорія = A2; основи Конституції Литви). Учень — Олег, 46 років, українець, гарний словниковий запас, слабка граматика й мало розмовної практики. Він готується сам, без репетитора.
-Правила відповіді: українською, просто й коротко (до 150 слів, якщо не просять більше). Литовські слова, речення й приклади завжди бери в **подвійні зірочки**. Якщо учень пише литовською — спершу м’яко виправ помилки (неправильно → **правильно**) і поясни, потім відповідай. Про Конституцію кажи лише те, в чому впевнений, з номером статті; якщо не впевнений — так і скажи й порадь перевірити на e-seimas.lrs.lt. Наприкінці, якщо доречно, дай одне коротке завдання для самоперевірки.
-Слабкі правила учня: ${weak}. Останні помилки: ${recent}.
-${hist ? 'Попередня розмова:\n' + hist + '\n' : ''}Нове повідомлення учня: ${q}`;
-  try {
-    const r = await cap.sample(prompt, { modelTier: 'default', cache: false });
-    S.chat.push({ role: 'assistant', content: (r.text || '').trim() || '…' });
-  } catch (e) { S.chat.push({ role: 'assistant', content: e && e.code === 'rate_limited' ? 'Забагато запитів. Спробуйте за хвилину.' : 'Не вдалося отримати відповідь. Спробуйте ще раз.' }); }
-  if (S.chat.length > 40) S.chat = S.chat.slice(-40);
-  tutorBusy = false; save(); renderTutor();
-}
-
-/* ===================== ШІ-вправи й тексти ===================== */
-async function aiExercises(ruleId, btn) {
-  const r = RULES.find(x => x.id === ruleId); if (!r || !cap.sample) return;
-  if (btn) { btn.disabled = true; btn.lastChild.textContent = ' ШІ складає вправи…'; }
-  const past = openMistakes().filter(m => m.it.rule === ruleId).slice(-4).map(m => `«${m.given}» замість «${m.right}»`).join('; ');
-  try {
-    const j = await askAI(`Склади 6 нових вправ рівня A2 на литовське правило «${r.lt}» (${r.ua}). Коротко правило: ${r.summary}
-Речення — з побуту дорослого чоловіка в Литві (робота, магазин, лікар, транспорт, дім). ${past ? 'Учень раніше помилявся так: ' + past + '. Зроби частину вправ саме на ці випадки.' : ''}
-4 вправи з вибором (3 варіанти, правильний ПЕРШИЙ) і 2 вправи, де треба вписати одне слово (у дужках — початкова форма).
-Відповідай ТІЛЬКИ JSON без markdown: {"items":[{"q":"речення з ___","o":["правильна","хибна","хибна"],"ex":"коротке пояснення українською"},{"q":"речення з ___ (початкова форма)","a":["правильна форма"],"ex":"пояснення українською"}]}`);
-    const items = (j.items || []).filter(e => e && typeof e.q === 'string' && e.q.includes('___') && ((Array.isArray(e.o) && e.o.length === 3 && new Set(e.o).size === 3) || (Array.isArray(e.a) && e.a[0])));
-    if (items.length < 3) throw 0;
-    closeSheet();
-    runQuiz({ title: r.ua + ' · ШІ', items: ruleItems(r, items.map(e => ({ q: e.q, o: e.o, a: e.a, ex: esc(e.ex || '') }))), onFinish(res) {
-      res.forEach(x => pushHist(S.rules, ruleId, x.ok)); markDone('gram', 12); return '';
-    }});
-  } catch (e) { toast('Не вдалося скласти вправи. Спробуйте ще раз.'); if (btn) { btn.disabled = false; btn.lastChild.textContent = ' Ще 6 нових вправ від ШІ'; } }
-}
-function weekTopic() { const pool = TOPICS.filter(t => t.week <= curWeek()); return pick(pool.length ? pool : TOPICS); }
-async function aiReading(btn) {
-  if (!cap.sample) return;
-  const t = weekTopic();
-  if (btn) btn.disabled = true; toast('ШІ складає текст…');
-  try {
-    const j = await askAI(`Склади навчальний текст для читання на іспиті з литовської мови A2 (NŠA, I категорія). Тема: ${t.lt} (${t.ua}). Тип — один із: оголошення, лист другу, графік роботи, меню, повідомлення установи. 60–110 слів, проста литовська A2, конкретні числа, дні, час, ціни, адреси (вигадані).
-Відповідай ТІЛЬКИ JSON без markdown: {"title":"заголовок литовською","ua":"тип тексту українською","text":"текст","gloss":[["литовське слово з тексту","переклад"]],"q":[{"q":"питання литовською","o":["правильна відповідь","хибна","хибна"]}]}
-gloss — 4 слова, q — 4 питання.`);
-    if (!j.text || !Array.isArray(j.q) || j.q.length < 2) throw 0;
-    window.AI_READ = { id: 'ai', title: j.title || 'Tekstas', ua: (j.ua || 'Текст від ШІ'), text: j.text, gloss: (j.gloss || []).filter(g => Array.isArray(g) && g[0]), q: j.q.filter(q => q.q && Array.isArray(q.o) && q.o.length === 3) };
-    openReading('ai');
-  } catch (e) { toast('Не вдалося скласти текст. Спробуйте ще раз.'); }
-  if (btn) btn.disabled = false;
-}
-async function aiListening(btn) {
-  if (!cap.sample) return;
-  const t = weekTopic();
-  if (btn) btn.disabled = true; toast('ШІ складає запис…');
-  try {
-    const j = await askAI(`Склади текст для аудіювання на іспиті з литовської мови A2 (NŠA, I категорія). Тема: ${t.lt}. Тип — телефонне повідомлення, оголошення на вокзалі чи в магазині, або короткий діалог (4–6 реплік). Проста литовська, обов’язково числа: час, дата, ціна або номер (числа пиши словами).
-Відповідай ТІЛЬКИ JSON без markdown: {"title":"назва литовською","ua":"тип українською","lines":["репліка або весь монолог одним рядком"],"q":[{"q":"питання литовською","o":["правильна","хибна","хибна"]}]}
-q — 3 питання; у варіантах числа пиши цифрами.`);
-    if (!Array.isArray(j.lines) || !j.lines.length || !Array.isArray(j.q)) throw 0;
-    window.AI_LISTEN = { id: 'ai', title: j.title || 'Įrašas', ua: j.ua || 'Запис від ШІ', lines: j.lines.filter(Boolean), q: j.q.filter(q => q.q && Array.isArray(q.o) && q.o.length === 3) };
-    openListening('ai');
-  } catch (e) { toast('Не вдалося скласти запис. Спробуйте ще раз.'); }
-  if (btn) btn.disabled = false;
-}
-
 /* ===================== Обробник нових дій ===================== */
 function extraAct(a, arg, t, fromTask) {
   switch (a) {
@@ -449,16 +360,7 @@ function extraAct(a, arg, t, fromTask) {
     case 'se-self': { const n = document.querySelectorAll('.exchk').length, c = document.querySelectorAll('.exchk:checked').length; S.exams[SE.v.id].s = Math.round(100 * c / Math.max(1, n)); markDone('skill', 15); closeSheet(); toast('Зараховано.'); break; }
     case 'official': openOfficial(); break;
     case 'official-save': saveOfficial(); break;
-    case 'tutor': openTutor(); break;
-    case 'tutor-ask': if (cap.sample) openTutor(t.dataset.q, true); else chatAct('tutor-chat', '', t); break;
-    case 'tutor-chip': { const i = $('#tin'); if (i) { i.value = t.dataset.q; i.focus(); i.setSelectionRange(i.value.length, i.value.length); } break; }
-    case 'tutor-send': tutorSend(); break;
-    case 'tutor-say': say(t.dataset.text); break;
-    case 'tutor-clear': S.chat = []; save(); renderTutor(); t.remove(); break;
-    case 'ai-ex': aiExercises(arg, t); break;
-    case 'ai-read': aiReading(t); break;
-    case 'ai-listen': aiListening(t); break;
-    default: chatAct(a, arg, t);
+    default: learnAct(a, arg, t, fromTask);
   }
 }
 
