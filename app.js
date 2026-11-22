@@ -360,7 +360,7 @@ function viewOnboard() {
   const dots = `<div class="ob-dots">${[0,1,2].map(i => `<i class="${i === obStep ? 'on' : ''}"></i>`).join('')}</div>`;
   const shell = (title, mood, body, cls = '') => `<section class="ob scr ${cls}">
     <h1 class="scr-h">${title}</h1>
-    ${mood === 'happy' ? `<div class="scr-pet rig-host" data-mood="happy">${petSVG(mood, 300, 'big rig-fallback')}</div>` : `<div class="scr-pet">${petSVG(mood, 300, 'big')}</div>`}
+    <div class="scr-pet rig-host" data-mood="happy">${petSVG('happy', 300, 'big rig-fallback')}</div>
     <div class="scr-bot">${body}</div></section>`;
   if (obStep === 0) return shell('Labas!<br>Будуймо міст<br>до іспиту?', 'happy', `
       <button class="btn pill" data-act="onb-next">Почати</button>

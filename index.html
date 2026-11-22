@@ -732,14 +732,14 @@ mark { background: #ffe58a; color: inherit; border-radius: 4px; padding: 0 2px; 
 .tip { background: var(--sky); border-radius: 12px; padding: 10px 12px; font-size: .9rem; }
 
 /* ===== Pūkas у вправах (відео) ===== */
-.qpet { position: absolute; z-index: 31; left: 50%; bottom: 4px; width: 118px; transform: translateX(-50%); pointer-events: none; transition: width .5s cubic-bezier(.3,1.4,.5,1), bottom .5s ease; }
-.qpet.big { width: min(300px, 76%); bottom: 12px; }
+.qpet { position: absolute; z-index: 31; right: 6px; bottom: 4px; width: 112px; pointer-events: none; transition: width .5s cubic-bezier(.3,1.4,.5,1), right .5s cubic-bezier(.3,1.2,.5,1), bottom .5s ease; }
+.qpet.big { width: min(300px, 76%); right: calc(50% - min(150px, 38%)); bottom: 12px; }
 .qpet .qpet-img { width: 100%; display: block; }
 .qpet.ready .qpet-img { display: none; }
 .qpet canvas.pet-cv { display: none; width: 100%; aspect-ratio: 1; }
 .qpet.ready canvas.pet-cv { display: block; }
 .qpet .b-word { top: 6%; animation-duration: 3s; }
-.sheet-in.has-peek .sheet-b { padding-bottom: 150px; }
+.sheet-in.has-peek .sheet-b { padding-bottom: 130px; }
 
 /* ===== Тема: картки-слова ===== */
 .topic-head { display: flex; gap: 14px; align-items: center; }
