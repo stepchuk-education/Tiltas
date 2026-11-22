@@ -118,10 +118,17 @@ function nextDeck() {
 }
 
 /* ---------- Вкладка «Картки» ---------- */
+/* Кожна колода — свого кольору, у синьо-блакитній гамі з кількома теплими акцентами. */
+const DECK_COLORS = [
+  'linear-gradient(150deg,#4f8dff,#1d4fd0)', 'linear-gradient(150deg,#38c3e6,#1484c7)', 'linear-gradient(150deg,#8b7bff,#4b3cc9)',
+  'linear-gradient(150deg,#2fd0b0,#0f8f8a)', 'linear-gradient(150deg,#ff9a7a,#e0566a)', 'linear-gradient(150deg,#5aa0ff,#6a5cff)',
+  'linear-gradient(150deg,#ffc36b,#f08a3e)', 'linear-gradient(150deg,#3b6fd8,#0e2f86)', 'linear-gradient(150deg,#7fd1ff,#3e8fe8)',
+  'linear-gradient(150deg,#ff8fb8,#c94f9a)', 'linear-gradient(150deg,#60d394,#1f9a6a)', 'linear-gradient(150deg,#9aa8ff,#5b6be0)',
+];
 function viewCards() {
   const due = allDue(), mine = mineDeck(), ms = deckStats(mine);
-  const tile = d => { const s = deckStats(d), p = s.total ? Math.round(100 * s.learned / s.total) : 0;
-    return `<button class="deck" data-act="deck:${d.id}">${ic(d.icon)}<b>${esc(d.title)}</b><small class="${d.ua ? '' : 'lt'}">${esc(d.sub)}</small>
+  const tile = (d, i) => { const s = deckStats(d), p = s.total ? Math.round(100 * s.learned / s.total) : 0;
+    return `<button class="deck" data-act="deck:${d.id}" style="--dg:${DECK_COLORS[i % DECK_COLORS.length]}">${ic(d.icon)}<b>${esc(d.title)}</b><small class="${d.ua ? '' : 'lt'}">${esc(d.sub)}</small>
       <span class="dbar"><i style="width:${p}%"></i></span><em>${s.learned}/${s.total}${s.due ? ` · <span class="due">${s.due} повторити</span>` : ''}</em></button>`; };
   const q = dictQuery.trim().toLowerCase();
   const list = S.words.slice().reverse().filter(w => !q || w.lt.toLowerCase().includes(q) || (w.ua || '').toLowerCase().includes(q));
@@ -130,7 +137,7 @@ function viewCards() {
   <h3 class="wk">Слова за темами іспиту</h3>
   <div class="decks">${decks().filter(d => /^t\d/.test(d.id)).map(tile).join('')}</div>
   <h3 class="wk">Фрази й шпаргалки</h3>
-  <div class="decks">${decks().filter(d => !/^t\d/.test(d.id)).map(tile).join('')}${mine.cards.length ? tile(mine) : ''}</div>
+  <div class="decks">${decks().filter(d => !/^t\d/.test(d.id)).map((d, i) => tile(d, i + 3)).join('')}${mine.cards.length ? tile(mine, 9) : ''}</div>
   <details class="fold mywords"><summary><span>${ic('plus')} Мої слова · ${S.words.length}</span></summary>
     <div class="fold-in">
       <div class="addw">
@@ -159,7 +166,8 @@ function openDeck(id, fromTask) {
     const due = queue.filter(x => !x.isNew), fresh = queue.filter(x => x.isNew); queue = shuffle(due).concat(fresh.slice(0, Math.max(5, 12 - due.length))); }
   queue = (id === 'due' ? shuffle(queue) : queue).slice(0, 20);
   if (!queue.length) { toast('У цій колоді на сьогодні все вивчено. Puiku!'); return; }
-  CS = { id, queue, i: 0, ok: 0, again: 0, flipped: false, fromTask, retried: new Set() };
+  const di = decks().findIndex(d => d.id === id);
+  CS = { id, queue, i: 0, ok: 0, again: 0, flipped: false, fromTask, retried: new Set(), color: DECK_COLORS[(di < 0 ? 0 : di < 12 ? di : di - 9) % DECK_COLORS.length] };
   openSheet('<div id="cs"></div>', { title, zone: id === 'kn' ? 'konst' : '' });
   renderCard();
 }
@@ -173,7 +181,7 @@ function renderCard() {
   const sayTxt = it.d.ua ? '' : it.c.f.replace(/…/g, '');
   box.innerHTML = `<div class="qprog"><i style="width:${100 * CS.i / n}%"></i></div>
     <div class="cs-top"><span class="qcount">${CS.i + 1} з ${n}${it.isNew ? ' · <b class="newc">нова</b>' : ''}</span>${it.d.ua ? '' : `<button class="link" data-act="card-rev">${ic('repeat')} ${rev ? 'UA → LT' : 'LT → UA'}</button>`}</div>
-    <div class="fc-wrap"><div class="fc ${CS.flipped ? 'flip' : ''}" id="fc" data-act="card-flip">
+    <div class="fc-wrap ${CS.i === 0 && !CS.dealt ? 'deal' : 'next'}" style="--cg:${CS.color || DECK_COLORS[0]}"><div class="fc ${CS.flipped ? 'flip' : ''}" id="fc" data-act="card-flip">
       <div class="fc-face fc-front"><span class="fc-txt ${ltFront ? 'lt' : ''}">${esc(front)}</span>${sayTxt && !rev ? `<button class="iconbtn" data-act="say" data-text="${esc(sayTxt)}" aria-label="Озвучити">${ic('speaker')}</button>` : ''}<small class="fc-hint">торкніться, щоб перевернути</small></div>
       <div class="fc-face fc-back"><span class="fc-txt ${ltBack ? 'lt' : ''}">${esc(back)}</span>${it.c.ex ? `<small class="lt fc-ex">${esc(it.c.ex)}</small>` : ''}${sayTxt ? `<button class="iconbtn" data-act="say" data-text="${esc(sayTxt)}" aria-label="Озвучити">${ic('speaker')}</button>` : ''}</div>
     </div><i class="fc-stamp"></i></div>
@@ -182,6 +190,7 @@ function renderCard() {
       <button class="btn good big" data-act="card-grade" data-ok="1">${ic('check')} Знаю</button>
     </div>
     <p class="fine cs-swipe">Можна гортати: вправо — знаю, вліво — ще раз</p>`;
+  CS.dealt = true;
   bindSwipe($('#fc'));
 }
 function bindSwipe(el) {
@@ -320,7 +329,11 @@ function speakingTest(id) {
 /* ---------- Дії ---------- */
 function learnAct(a, arg, t, fromTask) {
   switch (a) {
-    case 'deck': openDeck(arg, fromTask); return true;
+    case 'deck': {
+      /* колода «знімається» з місця й перевертається, потім відкривається сесія */
+      if (t.classList.contains('deck') && !matchMedia('(prefers-reduced-motion: reduce)').matches) { t.classList.add('opening'); setTimeout(() => { t.classList.remove('opening'); openDeck(arg, fromTask); }, 380); }
+      else openDeck(arg, fromTask);
+      return true; }
     case 'card-flip': { if (t.dataset.moved) { delete t.dataset.moved; return true; } if (!CS) return true; CS.flipped = !CS.flipped; t.classList.toggle('flip', CS.flipped); document.querySelector('.cs-btns')?.classList.toggle('wait', !CS.flipped); return true; }
     case 'card-grade': gradeCard(t.dataset.ok === '1'); return true;
     case 'card-rev': S.cardRev = !S.cardRev; save(); CS.flipped = false; renderCard(); return true;
