@@ -3,26 +3,13 @@
 /* Зображення персонажа (папка pet/). Якщо якогось настрою тут немає, персонаж малюється вектором.
    У папці pet/ лежать усі 21 емоції — будь-яку можна підставити замість наявної. */
 const PET_IMG = {
-  /* спокій — блакитний */
-  happy:  'pet/main.webp',        // звичайний настрій
-  calm:   'pet/calm.webp',
-  /* радість — світлішає до білого */
-  joy:    'pet/hd-joy.webp',     // правильна відповідь
-  joy2:   'pet/hd-joy.webp',        // кілька правильних поспіль, день виконано
-  joy3:   'pet/hd-bliss.webp',   // серія правильних, чудовий результат
-  proud:  'pet/hd-joy.webp',
-  done:   'pet/hd-bliss.webp',   // міст добудовано
-  /* злість — від рожевого до червоного */
-  angry:  'pet/hd-angry.webp',     // помилка
-  angry2: 'pet/hd-angry.webp',      // дві помилки поспіль
-  angry3: 'pet/rage.webp',        // три і більше поспіль
-  /* сум — насичений синій */
-  sad:    'pet/hd-worry.webp',        // 2–3 дні без занять
-  sad2:   'pet/hd-sad.webp',        // 4–6 днів
-  sad3:   'pet/hd-sad.webp',     // тиждень і більше
+  /* Нерухомі кадри беремо з тих самих відео, щоб Pūkas усюди був однаковий. */
+  happy:  'pet/still/calm.webp',  calm: 'pet/still/calm.webp',
+  joy:    'pet/still/joy.webp',   joy2: 'pet/still/joy.webp',    proud: 'pet/still/joy.webp',
+  joy3:   'pet/still/cheer.webp', done: 'pet/still/cheer.webp',  bliss: 'pet/still/bliss.webp',
+  angry:  'pet/still/angry.webp', angry2: 'pet/still/angry.webp', angry3: 'pet/still/angry.webp',
+  sad:    'pet/still/sad.webp',   sad2: 'pet/still/sad.webp',    sad3: 'pet/still/sad.webp',
 };
-/* Чіткіші великі версії для показу на весь екран. */
-const PET_IMG_BIG = { happy: 'pet/main-big.webp' };
 /* Шлях до відео-інтро (напр. 'intro.mp4'). Поки порожньо — показується анімований мультик із міста. */
 const INTRO_VIDEO = 'pet/intro.mp4';
 /* Підписи до інтро: [початок, кінець (с), заголовок, литовською] */
@@ -55,7 +42,7 @@ const moodBase = m => m === 'joy' || m === 'calm' ? 'happy' : m === 'done' ? 'pr
 function petSVG(mood = 'happy', size = 96, cls = '') {
   if (PET_IMG[mood]) {
     const c = `pet petimg ${moodBase(mood)} ${mood} ${cls}`;
-    const src = size > 140 && PET_IMG_BIG[mood] ? PET_IMG_BIG[mood] : PET_IMG[mood];
+    const src = PET_IMG[mood];
     return cls.includes('onbridge')
       ? `<image class="${c}" href="${src}" width="${size}" height="${size}"/>`
       : `<img class="${c}" src="${src}" width="${size}" height="${size}" alt="${esc(petName())}" draggable="false">`;

@@ -732,14 +732,14 @@ mark { background: #ffe58a; color: inherit; border-radius: 4px; padding: 0 2px; 
 .tip { background: var(--sky); border-radius: 12px; padding: 10px 12px; font-size: .9rem; }
 
 /* ===== Pūkas у вправах (відео) ===== */
-.qpet { position: absolute; z-index: 31; left: 50%; bottom: 4px; width: 118px; transform: translateX(-50%); pointer-events: none; transition: width .5s cubic-bezier(.3,1.4,.5,1), bottom .5s ease; }
-.qpet.big { width: min(300px, 76%); bottom: 12px; }
+.qpet { position: absolute; z-index: 31; right: 6px; bottom: 4px; width: 112px; pointer-events: none; transition: width .5s cubic-bezier(.3,1.4,.5,1), right .5s cubic-bezier(.3,1.2,.5,1), bottom .5s ease; }
+.qpet.big { width: min(300px, 76%); right: calc(50% - min(150px, 38%)); bottom: 12px; }
 .qpet .qpet-img { width: 100%; display: block; }
 .qpet.ready .qpet-img { display: none; }
 .qpet canvas.pet-cv { display: none; width: 100%; aspect-ratio: 1; }
 .qpet.ready canvas.pet-cv { display: block; }
 .qpet .b-word { top: 6%; animation-duration: 3s; }
-.sheet-in.has-peek .sheet-b { padding-bottom: 150px; }
+.sheet-in.has-peek .sheet-b { padding-bottom: 130px; }
 
 /* ===== Тема: картки-слова ===== */
 .topic-head { display: flex; gap: 14px; align-items: center; }
@@ -792,6 +792,26 @@ mark { background: #ffe58a; color: inherit; border-radius: 4px; padding: 0 2px; 
 .sbar.on { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
 .sbar button { border: 0; background: rgba(255,255,255,.14); color: #fff; height: 44px; min-width: 44px; padding: 0 16px; border-radius: 22px; font: 700 .95rem var(--f-body); display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .sbar button:first-child { background: #fff; color: #0e3a96; }
+
+/* ===== Навички, шпаргалки, режим карток ===== */
+.skillmap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.radar { width: min(260px, 80%); height: auto; overflow: visible; }
+.radar .rg { fill: none; stroke: var(--line); stroke-width: 1; }
+.radar .ax { stroke: var(--line); stroke-width: 1; }
+.radar .rp { fill: url(#rgr); fill-opacity: .35; stroke: #2a63e0; stroke-width: 2.5; stroke-linejoin: round; transition: all .5s; }
+.radar .rdot { fill: #fff; stroke: #2a63e0; stroke-width: 2.5; }
+.radar text { font: 700 12px var(--f-body); fill: var(--ink); }
+.skillmap .tip { width: 100%; text-align: center; margin: 0; }
+.skills4 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.skill4 { min-width: 0; text-align: left; display: flex; flex-direction: column; gap: 3px; padding: 16px 14px; border-radius: 22px; border: 0; background: var(--dg); color: #fff; box-shadow: 0 10px 22px rgba(20,50,120,.2); cursor: pointer; font: inherit; transition: transform .2s cubic-bezier(.3,1.4,.5,1); }
+.skill4:active { transform: scale(.96); }
+.skill4 .s4emo { font-size: 1.9rem; line-height: 1; margin-bottom: 6px; }
+.skill4 b { font-size: 1.05rem; line-height: 1.2; }
+.skill4 small { color: rgba(255,255,255,.88); font-size: .8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmode button { font-size: .88rem; }
+.fc-txt.sm { font-size: clamp(1.05rem, 4.6vw, 1.35rem); font-family: var(--f-body); font-weight: 700; line-height: 1.35; }
+.fc-opts { font-size: .95rem; opacity: .7; }
+.rule-extra { margin-top: 10px; }
 </style>
 </head>
 <body>

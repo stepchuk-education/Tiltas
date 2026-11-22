@@ -135,6 +135,11 @@ function cardDecks() {
   decks.push({ id: 'link', title: 'Сполучні слова', sub: 'ir, bet, nes, todėl…', icon: 'repeat', cards: LINKERS.map(l => ({ f: l[0], b: l[1], ex: l[2] })) });
   decks.push({ id: 'wphr', title: 'Фрази для листа', sub: 'Labas, Tomai! Su pagarba…', icon: 'pen', cards: WRITE_PLAN.flatMap(s => s.ph).map(p => ({ f: p[0], b: p[1] })) });
   decks.push({ id: 'sphr', title: 'Фрази для розмови', sub: 'Manau, kad… Gal galite pakartoti?', icon: 'mic', cards: SPEAK_START.concat(SPEAK_TIME, RESCUE).map(p => ({ f: p[0], b: p[1] })) });
+  const strip = h => String(h || '').replace(/<[^>]+>/g, '');
+  RULES.forEach(r => decks.push({ id: 'g-' + r.id, gram: true, title: r.ua.replace(/\s*\(.*?\)\s*$/, ''), sub: r.lt, icon: 'lang', norev: true,
+    cards: [{ f: 'Правило: ' + r.ua, b: r.summary, plain: true }].concat(r.ex.map(e => ({ f: e.q, hint: e.o ? e.o.join(' · ') : '', b: e.o ? e.o[0] : e.a[0], ex: strip(e.ex), ltb: true }))) }));
+  decks.push({ id: 'cases', gram: true, title: 'Відмінки', sub: 'Kas? Ko? Kam? Ką? Kuo? Kur?', icon: 'lang', norev: true,
+    cards: CASES.map(c => ({ f: `${c[1]}  (${c[2]})`, b: c[0], ex: c[3], ltb: true })) });
   decks.push({ id: 'kn', title: 'Конституція: числа', sub: '141 · 4/5 · 300 000…', icon: 'konst', ua: true, cards: KSECTIONS.flatMap(s => s.nums || []).map(n => ({ f: n[1], b: n[0] })) });
   return decks;
 }
@@ -170,12 +175,16 @@ function viewCards() {
       <span class="dbar"><i style="width:${p}%"></i></span><em>${s.learned}/${s.total}${s.due ? ` · <span class="due">${s.due} повторити</span>` : ''}</em></button>`; };
   const q = dictQuery.trim().toLowerCase();
   const list = S.words.slice().reverse().filter(w => !q || w.lt.toLowerCase().includes(q) || (w.ua || '').toLowerCase().includes(q));
+  const mode = S.cardMode || 'mix';
+  const dueM = decks().concat([mine]).filter(d => mode === 'gram' ? d.gram : mode === 'words' ? !d.gram : true).reduce((a, d) => a + deckStats(d).due, 0);
+  const words = decks().filter(d => /^t\d/.test(d.id)), phr = decks().filter(d => !/^t\d/.test(d.id) && !d.gram), gram = decks().filter(d => d.gram);
   return `<h1 class="pageh">Картки</h1>
-  ${due ? `<button class="btn primary big" data-act="deck:due">${ic('repeat')} Повторити все на сьогодні · ${due}</button>` : `<p class="muted">Усе повторено. Оберіть колоду й вчіть нові картки.</p>`}
-  <h3 class="wk">Слова за темами іспиту</h3>
-  <div class="decks">${decks().filter(d => /^t\d/.test(d.id)).map(tile).join('')}</div>
-  <h3 class="wk">Фрази й шпаргалки</h3>
-  <div class="decks">${decks().filter(d => !/^t\d/.test(d.id)).map((d, i) => tile(d, i + 3)).join('')}${mine.cards.length ? tile(mine, 9) : ''}</div>
+  <div class="seg cmode" role="tablist">${[['words', '🔤 Слова'], ['gram', '🧩 Граматика'], ['mix', '🔀 Мікс']].map(([k, t]) => `<button role="tab" aria-selected="${mode === k}" class="${mode === k ? 'on' : ''}" data-act="cmode:${k}">${t}</button>`).join('')}</div>
+  ${dueM ? `<button class="btn primary big" data-act="deck:due:${mode}">${ic('repeat')} Повторити на сьогодні · ${dueM}</button>` : ''}
+  ${mode === 'mix' ? `<button class="btn ${dueM ? '' : 'primary '}big" data-act="deck:mix">🔀 Мікс: нові слова й правила</button>` : ''}
+  ${mode !== 'gram' ? `<h3 class="wk">Слова за темами іспиту</h3><div class="decks">${words.map(tile).join('')}</div>` : ''}
+  ${mode !== 'words' ? `<h3 class="wk">Граматика</h3><div class="decks">${gram.map((d, i) => tile(d, i + 2)).join('')}</div>` : ''}
+  ${mode !== 'gram' ? `<h3 class="wk">Фрази й шпаргалки</h3><div class="decks">${phr.map((d, i) => tile(d, i + 3)).join('')}${mine.cards.length ? tile(mine, 9) : ''}</div>` : ''}
   <details class="fold mywords"><summary><span>${ic('plus')} Мої слова · ${S.words.length}</span></summary>
     <div class="fold-in">
       <div class="addw">
@@ -199,10 +208,18 @@ function openDeck(id, fromTask) {
   const take = (d, onlyDue) => d.cards.forEach((c, i) => { const k = cardKey(d, i), s = S.srs[k];
     if (s ? s.d <= t : !onlyDue) queue.push({ d, i, k, c, isNew: !s }); });
   let title;
-  if (id === 'due') { decks().concat([mineDeck()]).forEach(d => take(d, true)); title = 'Повторення карток'; }
+  const inMode = (d, m) => m === 'gram' ? d.gram : m === 'words' ? !d.gram : true;
+  if (/^due/.test(id)) { const m = id.split(':')[1] || 'mix'; decks().concat([mineDeck()]).filter(d => inMode(d, m)).forEach(d => take(d, true)); title = 'Повторення карток'; }
+  else if (id === 'mix') { /* мікс: нове з поточних колод слів і правил */
+    const w = curWeek(), cur = decks().filter(d => d.id !== 'kn' && !(TOPICS.find(t => t.id === d.id)?.week > w) && !(RULES.find(r => 'g-' + r.id === d.id)?.week > w));
+    cur.forEach(d => take(d, true)); const due = queue.slice(); queue = [];
+    shuffle(cur).forEach(d => take(d, false)); const fresh = shuffle(queue.filter(x => x.isNew));
+    const fw = fresh.filter(x => !x.d.gram), fg = fresh.filter(x => x.d.gram);
+    const mixNew = []; while (mixNew.length < 12 && (fw.length || fg.length)) { if (fw.length) mixNew.push(fw.shift()); if (fg.length && mixNew.length < 12) mixNew.push(fg.shift()); }
+    queue = shuffle(due.concat(mixNew)); title = 'Мікс: слова й правила'; }
   else { const d = deckById(id); if (!d) return; title = d.title; take(d, false);
     const due = queue.filter(x => !x.isNew), fresh = queue.filter(x => x.isNew); queue = shuffle(due).concat(fresh.slice(0, Math.max(5, 12 - due.length))); }
-  queue = (id === 'due' ? shuffle(queue) : queue).slice(0, 20);
+  queue = (/^due/.test(id) ? shuffle(queue) : queue).slice(0, 20);
   if (!queue.length) { toast('У цій колоді на сьогодні все вивчено. Puiku!'); return; }
   const di = decks().findIndex(d => d.id === id);
   CS = { id, queue, i: 0, ok: 0, again: 0, flipped: false, fromTask, retried: new Set(), color: DECK_COLORS[(di < 0 ? 0 : di < 12 ? di : di - 9) % DECK_COLORS.length] };
@@ -213,15 +230,15 @@ function renderCard() {
   const box = $('#cs'); if (!box || !CS) return;
   const it = CS.queue[CS.i];
   if (!it) return finishCards();
-  const n = CS.queue.length, rev = !!S.cardRev && !it.d.ua;
+  const n = CS.queue.length, rev = !!S.cardRev && !it.d.ua && !it.d.norev;
   const front = rev ? it.c.b : it.c.f, back = rev ? it.c.f : it.c.b;
-  const ltFront = !rev && !it.d.ua, ltBack = rev;
-  const sayTxt = it.d.ua ? '' : it.c.f.replace(/…/g, '');
+  const ltFront = it.d.gram ? !it.c.plain : !rev && !it.d.ua, ltBack = it.d.gram ? !!it.c.ltb : rev;
+  const sayTxt = it.d.ua || it.d.gram ? '' : it.c.f.replace(/…/g, '');
   box.innerHTML = `<div class="qprog"><i style="width:${100 * CS.i / n}%"></i></div>
-    <div class="cs-top"><span class="qcount">${CS.i + 1} з ${n}${it.isNew ? ' · <b class="newc">нова</b>' : ''}</span>${it.d.ua ? '' : `<button class="link" data-act="card-rev">${ic('repeat')} ${rev ? 'UA → LT' : 'LT → UA'}</button>`}</div>
+    <div class="cs-top"><span class="qcount">${CS.i + 1} з ${n}${it.isNew ? ' · <b class="newc">нова</b>' : ''}</span>${it.d.ua || it.d.norev ? '' : `<button class="link" data-act="card-rev">${ic('repeat')} ${rev ? 'UA → LT' : 'LT → UA'}</button>`}</div>
     <div class="fc-wrap ${CS.i === 0 && !CS.dealt ? 'deal' : 'next'}" style="--cg:${CS.color || DECK_COLORS[0]}"><div class="fc ${CS.flipped ? 'flip' : ''}" id="fc" data-act="card-flip">
-      <div class="fc-face fc-front">${it.c.e ? `<span class="fc-emo">${it.c.e}</span>` : ''}<span class="fc-txt ${ltFront ? 'lt' : ''}">${esc(front)}</span>${sayTxt && !rev ? `<button class="iconbtn" data-act="say" data-text="${esc(sayTxt)}" aria-label="Озвучити">${ic('speaker')}</button>` : ''}<small class="fc-hint">торкніться, щоб перевернути</small></div>
-      <div class="fc-face fc-back">${it.c.e ? `<span class="fc-emo">${it.c.e}</span>` : ''}<span class="fc-txt ${ltBack ? 'lt' : ''}">${esc(back)}</span>${it.c.ex ? `<small class="lt fc-ex">${esc(it.c.ex)}</small>` : ''}${sayTxt ? `<button class="iconbtn" data-act="say" data-text="${esc(sayTxt)}" aria-label="Озвучити">${ic('speaker')}</button>` : ''}</div>
+      <div class="fc-face fc-front">${it.c.e ? `<span class="fc-emo">${it.c.e}</span>` : ''}<span class="fc-txt ${ltFront ? 'lt' : ''} ${it.c.plain ? 'sm' : ''}">${esc(front)}</span>${it.c.hint ? `<small class="fc-opts lt">${esc(it.c.hint)}</small>` : ''}${sayTxt && !rev ? `<button class="iconbtn" data-act="say" data-text="${esc(sayTxt)}" aria-label="Озвучити">${ic('speaker')}</button>` : ''}<small class="fc-hint">торкніться, щоб перевернути</small></div>
+      <div class="fc-face fc-back">${it.c.e ? `<span class="fc-emo">${it.c.e}</span>` : ''}<span class="fc-txt ${ltBack ? 'lt' : ''} ${it.c.plain ? 'sm' : ''}">${esc(back)}</span>${it.c.ex ? `<small class="${it.d.gram ? '' : 'lt'} fc-ex">${esc(it.c.ex)}</small>` : ''}${sayTxt ? `<button class="iconbtn" data-act="say" data-text="${esc(sayTxt)}" aria-label="Озвучити">${ic('speaker')}</button>` : ''}</div>
     </div><i class="fc-stamp"></i></div>
     <div class="cs-btns ${CS.flipped ? '' : 'wait'}">
       <button class="btn bad big" data-act="card-grade" data-ok="0">${ic('x')} Ще раз</button>
@@ -250,9 +267,9 @@ function gradeCard(ok) {
 }
 function finishCards() {
   const box = $('#cs'); const n = CS.ok + CS.again, p = n ? Math.round(100 * CS.ok / n) : 0;
-  if (CS.fromTask) markDone('skill', 10); else if (CS.id === 'due') markDone('rev', 10); else save();
+  if (CS.fromTask) markDone('skill', 10); else if (/^due/.test(CS.id)) markDone('rev', 10); else save();
   const mood = p >= 85 ? 'joy3' : p >= 60 ? 'joy' : 'calm';
-  const again = CS.id === 'due' ? '' : `<button class="btn" data-act="deck:${CS.id}">${ic('repeat')} Ще картки з цієї колоди</button>`;
+  const again = /^due/.test(CS.id) ? '' : `<button class="btn" data-act="deck:${CS.id}">${ic('repeat')} Ще картки з цієї колоди</button>`;
   box.innerHTML = `<div class="result"><div class="respet">${petSVG(mood, 130)}</div>
     <h2>${p >= 85 ? 'Puiku!' : p >= 60 ? 'Gerai!' : 'Нічого, повторимо!'}</h2>
     <p class="muted">Знаю: <b>${CS.ok}</b> · ще раз: <b>${CS.again}</b>. Картки повернуться саме тоді, коли почнуть забуватися.</p>
@@ -335,7 +352,7 @@ function writingTest(id, fromTask) {
     items = items.concat(shuffle(WRITE_Q).slice(0, 6 - Math.min(items.length, 4)).map(x => choiceQ(x[0], x[1], x[2], x[3], x[4], 'Лист')));
   }
   runQuiz({ title: w.title, items, onFinish(res) { const pc = Math.round(100 * res.filter(x => x.ok).length / res.length);
-    S.write[id] = { score: Math.round(pc / 10), date: todayStr() }; markDone('skill', 15); return ''; } });
+    S.write[id] = { score: Math.round(pc / 10), date: todayStr() }; logSkill('write'); markDone('skill', 15); return ''; } });
 }
 
 /* ---------- Говоріння: формула + зразок + тест ---------- */
@@ -361,7 +378,7 @@ function speakingTest(id) {
   const items = [pickQ(s)].concat(shuffle(SPEAKING.filter(x => x !== s)).slice(0, 2).map(pickQ),
     shuffle(SPEAK_START.concat(SPEAK_TIME)).slice(0, 2).map(p => { const o = shuffle(SPEAK_START.concat(SPEAK_TIME, RESCUE).filter(x => x !== p)).slice(0, 2);
       return { type: 'choice', q: `Як сказати литовською: <b>«${esc(p[1])}»</b>?`, o: [p[0], o[0][0], o[1][0]], tag: 'Фрази для розмови' }; }));
-  runQuiz({ title: 'Говоріння', items, onFinish() { S.speak[id] = (S.speak[id] || 0) + 1; markDone('skill', 10); return ''; } });
+  runQuiz({ title: 'Говоріння', items, onFinish() { S.speak[id] = (S.speak[id] || 0) + 1; logSkill('speak'); markDone('skill', 10); return ''; } });
 }
 
 /* ---------- Дії ---------- */
@@ -374,6 +391,9 @@ function learnAct(a, arg, t, fromTask) {
       return true; }
     case 'card-flip': { if (t.dataset.moved) { delete t.dataset.moved; return true; } if (!CS) return true; CS.flipped = !CS.flipped; t.classList.toggle('flip', CS.flipped); document.querySelector('.cs-btns')?.classList.toggle('wait', !CS.flipped); return true; }
     case 'card-grade': gradeCard(t.dataset.ok === '1'); return true;
+    case 'cmode': S.cardMode = arg; save(); render(); return true;
+    case 'skill': openSkill(arg); return true;
+    case 'cheat': openCheat(arg); return true;
     case 'card-rev': S.cardRev = !S.cardRev; save(); CS.flipped = false; renderCard(); return true;
     case 'guide': openGuide(arg); return true;
     case 'wflip': t.classList.toggle('on'); return true;
@@ -383,4 +403,77 @@ function learnAct(a, arg, t, fromTask) {
     case 's-test': speakingTest(arg); return true;
   }
   return false;
+}
+
+/* ---------- Навички: 4 блоки й діаграма ---------- */
+const SKILLS = [
+  { k: 'read', t: 'Читання', ic: 'read', emo: '📖', list: () => READING, desc: 'Оголошення, графіки, листи. Шукаємо час, ціну, адресу.' },
+  { k: 'listen', t: 'Аудіювання', ic: 'ear', emo: '🎧', list: () => LISTENING, desc: 'Повідомлення, оголошення, діалоги. Числа й дати на слух.' },
+  { k: 'write', t: 'Письмо', ic: 'pen', emo: '✍️', list: () => WRITING, desc: 'Шпаргалка, зразок і тест до кожного завдання.', guide: 'write' },
+  { k: 'speak', t: 'Говоріння', ic: 'mic', emo: '🗣️', list: () => SPEAKING, desc: 'Питання екзаменатора: зразок відповіді й тест.', guide: 'speak' },
+];
+function logSkill(k) { S.skillLog = S.skillLog || {}; S.skillLog[k] = (S.skillLog[k] || 0) + 1; }
+const skillDone = k => Object.keys(S[k] || {}).length;
+const skillCount = k => Math.max((S.skillLog || {})[k] || 0, skillDone(k));
+function radarSVG() {
+  const vals = SKILLS.map(s => skillCount(s.k)), max = Math.max(3, ...vals);
+  const C = 110, R = 78, ang = [-90, 0, 90, 180].map(a => a * Math.PI / 180);
+  const pt = (i, r) => [C + Math.cos(ang[i]) * r, C + Math.sin(ang[i]) * r];
+  const rings = [1, .66, .33].map(f => `<polygon class="rg" points="${ang.map((_, i) => pt(i, R * f).join(',')).join(' ')}"/>`).join('');
+  const axes = ang.map((_, i) => `<line class="ax" x1="${C}" y1="${C}" x2="${pt(i, R)[0]}" y2="${pt(i, R)[1]}"/>`).join('');
+  const poly = vals.map((v, i) => pt(i, R * Math.max(0.08, v / max)).join(',')).join(' ');
+  const lbl = SKILLS.map((s, i) => { const [x, y] = pt(i, R + 22); return `<text x="${x}" y="${y + 4}" text-anchor="middle">${s.emo} ${vals[i]}</text>`; }).join('');
+  return `<svg class="radar" viewBox="0 0 220 220" role="img" aria-label="Скільки тренувань у кожній навичці">${rings}${axes}
+    <defs><linearGradient id="rgr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa0ff"/><stop offset="1" stop-color="#1d4fd0"/></linearGradient></defs>
+    <polygon class="rp" points="${poly}"/>${vals.map((v, i) => { const [x, y] = pt(i, R * Math.max(0.08, v / max)); return `<circle class="rdot" cx="${x}" cy="${y}" r="4.5"/>`; }).join('')}${lbl}</svg>`;
+}
+function viewSkillsSeg() {
+  const vals = SKILLS.map(s => skillCount(s.k)), total = vals.reduce((a, b) => a + b, 0);
+  const minI = vals.indexOf(Math.min(...vals)), maxI = vals.indexOf(Math.max(...vals));
+  const tip = !total ? 'Почніть з будь-якої навички — діаграма покаже баланс.'
+    : vals[maxI] - vals[minI] >= 2 ? `Найбільше ви тренуєте <b>${SKILLS[maxI].t.toLowerCase()}</b>, а найменше — <b>${SKILLS[minI].t.toLowerCase()}</b>. Варто підтягнути!`
+    : 'Чудовий баланс: усі навички тренуються рівномірно.';
+  return `<section class="card skillmap">${radarSVG()}<p class="tip">${tip}</p>
+    ${total && vals[maxI] - vals[minI] >= 2 ? `<button class="btn primary" data-act="skill:${SKILLS[minI].k}">${SKILLS[minI].emo} Потренувати ${SKILLS[minI].t.toLowerCase()}</button>` : ''}</section>
+    <div class="skills4">${SKILLS.map((s, i) => { const L = s.list(), d = skillDone(s.k), p = Math.round(100 * d / L.length);
+      return `<button class="skill4" data-act="skill:${s.k}" style="--dg:${DECK_COLORS[[0, 2, 4, 3][i]]}"><span class="s4emo">${s.emo}</span><b>${s.t}</b><small>${d} з ${L.length}</small><span class="dbar"><i style="width:${p}%"></i></span></button>`; }).join('')}</div>
+    <button class="btn big" data-act="cheat:all">${ic('read')} Усі шпаргалки</button>`;
+}
+function openSkill(k) {
+  const s = SKILLS.find(x => x.k === k); if (!s) return;
+  const store = S[k] || {};
+  const label = { read: v => v + '%', listen: v => v + '%', write: v => (typeof v === 'object' ? v.score : v) + '/10', speak: () => 'тренувано' }[k];
+  openSheet(`<div class="topic-head"><span class="temo">${s.emo}</span><div><p class="eyebrow">${skillDone(k)} з ${s.list().length} виконано</p><h1>${s.t}</h1><p class="muted">${esc(s.desc)}</p></div></div>
+    ${s.guide ? `<button class="btn" data-act="guide:${s.guide}">${ic('read')} Шпаргалка: ${s.guide === 'write' ? 'як написати лист' : 'як відповідати усно'}</button>` : ''}
+    <div class="list">${s.list().map(x => { const v = store[x.id]; const sc = v === undefined ? null : (typeof v === 'object' ? v.score : v);
+      return `<button class="row" data-act="${k}:${x.id}"><span class="rowt"><b>${esc(x.title || x.q)}</b><small>${esc(x.ua || '')}</small></span><span class="pill ${sc === null ? 'new' : 'good'}">${sc === null ? 'тиждень ' + (x.week || 1) : label(v)}</span></button>`; }).join('')}</div>`, { title: s.t });
+}
+
+/* ---------- Усі шпаргалки ---------- */
+const CHEATS = [
+  ['write', '✉️', 'Як написати лист', '5 кроків і готові фрази'],
+  ['link', '🔗', 'Сполучні слова', 'ir, bet, nes, todėl, kai…'],
+  ['speak', '🗣️', 'Як відповідати усно', 'формула 1‑2‑3'],
+  ['cases', '🧩', 'Відмінки', 'Kas? Ko? Kam? Ką? Kuo? Kur?'],
+  ['rules', '📐', 'Усі правила коротко', '13 правил граматики A2'],
+  ['rescue', '🆘', 'Рятівні фрази', 'якщо не зрозуміли'],
+];
+function viewCheatSeg() {
+  return `<p class="muted">Усі шпаргалки в одному місці. Торкніться, щоб відкрити.</p>
+    <div class="skills4 cheats">${CHEATS.map((c, i) => `<button class="skill4" data-act="cheat:${c[0]}" style="--dg:${DECK_COLORS[i % DECK_COLORS.length]}"><span class="s4emo">${c[1]}</span><b>${c[2]}</b><small class="${i === 1 || i === 3 ? 'lt' : ''}">${c[3]}</small></button>`).join('')}</div>`;
+}
+function openCheat(k) {
+  if (k === 'all') { openSheet(viewCheatSeg(), { title: 'Шпаргалки' }); return; }
+  if (['write', 'link', 'speak'].includes(k)) return openGuide(k);
+  if (k === 'cases') return openSheet(`<p class="eyebrow">Шпаргалка</p><h1>Відмінки</h1>
+    <p class="muted">Відмінок визначаємо питанням — як в українській.</p>
+    <div class="cases">${CASES.map(c => `<div class="case"><b class="lt">${c[1]}</b><span>${c[2]}</span><small>${c[0]}</small><em class="lt">${c[3]}</em></div>`).join('')}</div>
+    <div class="btnrow"><button class="btn primary big" data-act="deck:cases">${ic('dict')} Картки: відмінки</button></div>`, { title: 'Відмінки' });
+  if (k === 'rules') return openSheet(`<p class="eyebrow">Шпаргалка</p><h1>Усі правила коротко</h1>
+    <p class="muted">Торкніться правила, щоб побачити суть.</p>
+    <div class="plan5">${RULES.map((r, i) => `<details><summary><span class="pn">${i + 1}</span><span><b>${esc(r.ua)}</b><small class="lt">${esc(r.lt)}</small></span></summary>
+      <div class="fold-in"><p class="tip">${esc(r.summary)}</p><div class="btnrow"><button class="btn" data-act="rule:${r.id}">${ic('read')} Теорія</button><button class="btn" data-act="deck:g-${r.id}">${ic('dict')} Картки</button></div></div></details>`).join('')}</div>`, { title: 'Правила' });
+  if (k === 'rescue') return openSheet(`<p class="eyebrow">Шпаргалка</p><h1>Рятівні фрази</h1>
+    <p class="muted">На іспиті їх не вважають помилкою — це частина навички спілкування.</p>${phraseList(RESCUE)}
+    <div class="btnrow"><button class="btn primary big" data-act="deck:sphr">${ic('dict')} Картки</button></div>`, { title: 'Рятівні фрази' });
 }

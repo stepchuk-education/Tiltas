@@ -360,7 +360,7 @@ function viewOnboard() {
   const dots = `<div class="ob-dots">${[0,1,2].map(i => `<i class="${i === obStep ? 'on' : ''}"></i>`).join('')}</div>`;
   const shell = (title, mood, body, cls = '') => `<section class="ob scr ${cls}">
     <h1 class="scr-h">${title}</h1>
-    ${mood === 'happy' ? `<div class="scr-pet rig-host" data-mood="happy">${petSVG(mood, 300, 'big rig-fallback')}</div>` : `<div class="scr-pet">${petSVG(mood, 300, 'big')}</div>`}
+    <div class="scr-pet rig-host" data-mood="happy">${petSVG('happy', 300, 'big rig-fallback')}</div>
     <div class="scr-bot">${body}</div></section>`;
   if (obStep === 0) return shell('Labas!<br>Будуймо міст<br>до іспиту?', 'happy', `
       <button class="btn pill" data-act="onb-next">Почати</button>
@@ -432,41 +432,22 @@ function viewToday() {
 
 /* ----- Мова ----- */
 function viewLang() {
-  const seg = [['gram','Граматика'],['skills','Навички'],['exam','Іспит'],['topics','Слова']];
+  const seg = [['gram','Граматика'],['skills','Навички'],['cheat','Шпаргалки'],['exam','Іспит'],['topics','Слова']];
   let body = '';
   if (langSeg === 'exam') {
     body = viewExamSeg();
   } else if (langSeg === 'gram') {
     body = `
-    <section class="card">
-      <h2>Відмінки: шпаргалка</h2>
-      <div class="cases">${CASES.map(c => `<div class="case"><b class="lt">${c[1]}</b><span>${c[2]}</span><small>${c[0]}</small><em class="lt">${c[3]}</em></div>`).join('')}</div>
-      <p class="fine">Відмінок визначаємо питанням. Українською — ті самі питання, тож аналогії працюють.</p>
-    </section>
+    <div class="btnrow"><button class="btn" data-act="cheat:cases">🧩 Шпаргалка: відмінки</button><button class="btn" data-act="cheat:rules">📐 Усі правила коротко</button></div>
     ${[1,2,3,4,5].map(w => {
       const rs = RULES.filter(r => r.week === w); if (!rs.length) return '';
       return `<h3 class="wk">Тиждень ${w}</h3><div class="list">${rs.map(r => { const m = ruleM(r.id); const [c, l] = lvl(m);
         return `<button class="row" data-act="rule:${r.id}"><span class="rowt"><b>${esc(r.ua)}</b><small class="lt">${esc(r.lt)}</small></span><span class="pill ${c}">${l}${m !== null ? ' · ' + m + '%' : ''}</span></button>`; }).join('')}</div>`; }).join('')}
     <section class="card"><h2>Діагностика</h2><p class="muted">${S.diag ? `Пройдено ${fmtD(S.diag.date)}: ${S.diag.score} з ${S.diag.total}. Можна пройти ще раз, щоб побачити прогрес.` : 'Ще не пройдено.'}</p><button class="btn" data-act="diag">Пройти діагностику</button></section>`;
   } else if (langSeg === 'skills') {
-    const block = (title, icon, desc, list, store, kind, label) => `
-      <h3 class="wk">${ic(icon)} ${title}</h3><p class="muted small">${desc}</p>
-      <div class="list">${list.map(x => { const s = store[x.id]; const sc = s === undefined ? null : (typeof s === 'object' ? s.score : s);
-        return `<button class="row" data-act="${kind}:${x.id}"><span class="rowt"><b>${esc(x.title || x.q)}</b><small>${esc(x.ua || '')}</small></span><span class="pill ${sc === null ? 'new' : sc >= 80 || (kind==='write' && sc >= 7) ? 'good' : 'mid'}">${sc === null ? 'тиждень ' + (x.week||1) : label(sc)}</span></button>`; }).join('')}</div>`;
-    body = `
-      <section class="card guides"><h2>${ic('read')} Шпаргалки</h2>
-        <div class="glist"><button class="row" data-act="guide:write"><span class="rowt"><b>Як написати лист</b><small>5 кроків і готові фрази</small></span></button>
-        <button class="row" data-act="guide:link"><span class="rowt"><b>Сполучні слова</b><small class="lt">ir, bet, nes, todėl, kai…</small></span></button>
-        <button class="row" data-act="guide:speak"><span class="rowt"><b>Як відповідати усно</b><small>формула 1‑2‑3</small></span></button></div>
-      </section>
-      ${cap.sample ? `<div class="grid2"><button class="card action" data-act="ai-read">${ic('read')}<b>Новий текст</b><small>ШІ складе текст і питання на тему тижня</small></button><button class="card action" data-act="ai-listen">${ic('ear')}<b>Новий запис</b><small>ШІ складе оголошення чи діалог</small></button></div>` : ''}
-      ${block('Читання','read','Оголошення, графіки, листи. Шукаємо час, ціну, адресу.', READING, S.read, 'read', s => s + '%')}
-      ${block('Аудіювання','ear','Телефонні повідомлення, оголошення, діалоги. Числа й дати на слух.', LISTENING, S.listen, 'listen', s => s + '%')}
-      ${block('Письмо','pen','Шпаргалка, зразок і тест до кожного завдання.', WRITING, S.write, 'write', s => s + '/10')}
-      ${block('Говоріння','mic','Питання екзаменатора: зразок відповіді й тест.', SPEAKING, S.speak, 'speak', s => 'тренувано')}
-
-      <section class="card"><h2>Рятівні фрази</h2><p class="muted">На іспиті їх не вважають помилкою: це частина навички спілкування.</p>
-      <ul class="phr">${RESCUE.map(p => `<li><button class="iconbtn sm" data-act="say" data-text="${esc(p[0])}" aria-label="Озвучити">${ic('speaker')}</button><span><b class="lt">${esc(p[0])}</b><small>${esc(p[1])}</small></span></li>`).join('')}</ul></section>`;
+    body = viewSkillsSeg();
+  } else if (langSeg === 'cheat') {
+    body = viewCheatSeg();
   } else {
     body = `<p class="muted">12 тем іспиту. Відкрийте тему — і гортайте картки.</p>
       <div class="list">${TOPICS.map(t => { const n = typeof deckStats === 'function' ? deckStats(deckById(t.id)).learned : 0;
@@ -742,6 +723,7 @@ function openRule(id, fromTask) {
   const r = RULES.find(x => x.id === id); if (!r) return;
   const m = ruleM(id);
   const b = openSheet(`${ruleTheoryHtml(r)}
+    <div class="btnrow rule-extra">${/ninkas$/.test(id) ? '<button class="btn" data-act="cheat:cases">🧩 Шпаргалка: відмінки</button>' : id === 'jungtukai' ? '<button class="btn" data-act="guide:link">🔗 Шпаргалка: сполучні слова</button>' : '<button class="btn" data-act="cheat:rules">📐 Шпаргалка: усі правила</button>'}<button class="btn" data-act="deck:g-${id}">${ic('dict')} Картки з правилом</button></div>
     <div class="sticky-cta"><button class="btn primary big" data-act="rule-practice:${id}" data-task="${fromTask ? 'gram' : ''}">Практика: ${r.ex.length} завдань${m !== null ? ` · зараз ${m}%` : ''}</button></div>`, { title:'Граматика' });
   b.scrollTop = 0;
 }
@@ -810,7 +792,7 @@ function readingQuiz(id) {
   closeSheet();
   runQuiz({ title:r.title, items: r.q.map(q => ({ type:'choice', q:`<span class="ctx lt">${esc(r.text)}</span>${esc(q.q)}`, o:q.o })), onFinish(res) {
     const p = Math.round(100 * res.filter(x => x.ok).length / res.length);
-    if (id !== 'ai') S.read[id] = Math.max(S.read[id] || 0, p); markDone('skill', 10); return '';
+    if (id !== 'ai') S.read[id] = Math.max(S.read[id] || 0, p); logSkill('read'); markDone('skill', 10); return '';
   }});
 }
 function openListening(id) {
@@ -827,7 +809,7 @@ function listeningQuiz(id) {
   closeSheet();
   runQuiz({ title:l.title, items: l.q.map((q, i) => ({ type:'choice', q:esc(q.q), o:q.o, say: i === 0 ? l.lines.join(' ') : null })), onFinish(res) {
     const p = Math.round(100 * res.filter(x => x.ok).length / res.length);
-    if (id !== 'ai') S.listen[id] = Math.max(S.listen[id] || 0, p); markDone('skill', 10);
+    if (id !== 'ai') S.listen[id] = Math.max(S.listen[id] || 0, p); logSkill('listen'); markDone('skill', 10);
     return `<details class="transcript" open><summary>Текст запису</summary><div class="lt">${l.lines.map(x => `<p>${esc(x)}</p>`).join('')}</div></details>`;
   }});
 }
